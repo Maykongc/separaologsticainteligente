@@ -1,29 +1,490 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useCallback, useRef, useState } from "react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, Download, RotateCcw, Loader2, ArrowRight, Boxes } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { parseFile } from "@/lib/sli/fileParser";
+import { detectColumns, detectFooter, type ColumnMap, type DetectedColumn, type FooterInfo } from "@/lib/sli/columnDetector";
+import { normalizeRows, buildFardos, FARDO_MAX_CM, type Fardo } from "@/lib/sli/fardoBuilder";
+import { generatePdf } from "@/lib/sli/pdfGenerator";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Your App" },
-      { name: "description", content: "Replace this with a one-sentence description of your app." },
-      { property: "og:title", content: "Your App" },
-      { property: "og:description", content: "Replace this with a one-sentence description of your app." },
+      { title: "SLI — Sistema de Separação Logística Inteligente" },
+      { name: "description", content: "Automatize a leitura de planilhas operacionais e gere PDFs de separação organizados por FARDO." },
+      { property: "og:title", content: "SLI — Separação Logística Inteligente" },
+      { property: "og:description", content: "Upload de XLSX/CSV, geração automática de FARDOs e PDF pronto para impressão." },
     ],
   }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
+type Step = "upload" | "validation" | "preview" | "result";
+
+interface ProcessState {
+  file: File;
+  headers: string[];
+  rowCount: number;
+  map: ColumnMap;
+  missing: DetectedColumn[];
+  unknown: string[];
+  footer: FooterInfo;
+  rawRows: Record<string, unknown>[];
+  fardos?: Fardo[];
+}
+
+const LABELS: Record<DetectedColumn, string> = {
+  produto: "Produto",
+  endereco: "Endereço",
+  codigo: "Código",
+  quantidade: "Quantidade",
+  altura: "Altura",
+};
+
 function Index() {
+  const [step, setStep] = useState<Step>("upload");
+  const [state, setState] = useState<ProcessState | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = useCallback(async (file: File) => {
+    setBusy(true);
+    try {
+      const parsed = await parseFile(file);
+      if (!parsed.sheet1.rows.length) {
+        toast.error("A primeira aba está vazia.");
+        return;
+      }
+      const { map, missing, unknown } = detectColumns(parsed.sheet1.headers);
+      const footer = parsed.sheet2 ? detectFooter(parsed.sheet2.rows) : {};
+      setState({
+        file,
+        headers: parsed.sheet1.headers,
+        rowCount: parsed.sheet1.rows.length,
+        map,
+        missing,
+        unknown,
+        footer,
+        rawRows: parsed.sheet1.rows,
+      });
+      setStep("validation");
+    } catch (e) {
+      console.error(e);
+      toast.error("Não foi possível ler o arquivo. Verifique o formato.");
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) handleFile(f);
+  };
+
+  const buildPreview = () => {
+    if (!state) return;
+    setBusy(true);
+    try {
+      const normalized = normalizeRows(state.rawRows, state.map);
+      const fardos = buildFardos(normalized);
+      if (!fardos.length) {
+        toast.error("Nenhum FARDO pôde ser formado.");
+        return;
+      }
+      setState({ ...state, fardos });
+      setStep("preview");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const download = () => {
+    if (!state?.fardos) return;
+    generatePdf(state.fardos, state.footer, state.file.name);
+    toast.success("PDF gerado com sucesso.");
+    setStep("result");
+  };
+
+  const reset = () => {
+    setState(null);
+    setStep("upload");
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border bg-surface">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-md" style={{ background: "var(--gradient-header)" }}>
+              <Boxes className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold tracking-tight">SLI</h1>
+              <p className="text-xs text-muted-foreground">Separação Logística Inteligente</p>
+            </div>
+          </div>
+          <Stepper step={step} />
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-6xl px-6 py-10">
+        {step === "upload" && (
+          <UploadStep
+            busy={busy}
+            dragOver={dragOver}
+            setDragOver={setDragOver}
+            onDrop={onDrop}
+            inputRef={inputRef}
+            onPick={(f) => handleFile(f)}
+          />
+        )}
+
+        {step === "validation" && state && (
+          <ValidationStep state={state} onContinue={buildPreview} onCancel={reset} busy={busy} />
+        )}
+
+        {step === "preview" && state && state.fardos && (
+          <PreviewStep state={{ ...state, fardos: state.fardos }} onBack={() => setStep("validation")} onDownload={download} />
+        )}
+
+        {step === "result" && state && state.fardos && (
+          <ResultStep state={{ ...state, fardos: state.fardos }} onDownloadAgain={download} onNew={reset} />
+        )}
+      </main>
+
+      <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground">
+        SLI v1.0 · Processamento local · Limite FARDO {FARDO_MAX_CM} cm
+      </footer>
     </div>
+  );
+}
+
+function Stepper({ step }: { step: Step }) {
+  const steps: { id: Step; label: string }[] = [
+    { id: "upload", label: "Upload" },
+    { id: "validation", label: "Validação" },
+    { id: "preview", label: "Pré-visualização" },
+    { id: "result", label: "Resultado" },
+  ];
+  const idx = steps.findIndex((s) => s.id === step);
+  return (
+    <div className="hidden items-center gap-2 md:flex">
+      {steps.map((s, i) => (
+        <div key={s.id} className="flex items-center gap-2">
+          <div
+            className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-colors ${
+              i <= idx ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {i + 1}
+          </div>
+          <span className={`text-sm ${i === idx ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+            {s.label}
+          </span>
+          {i < steps.length - 1 && <div className="h-px w-6 bg-border" />}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function UploadStep({
+  busy,
+  dragOver,
+  setDragOver,
+  onDrop,
+  inputRef,
+  onPick,
+}: {
+  busy: boolean;
+  dragOver: boolean;
+  setDragOver: (v: boolean) => void;
+  onDrop: (e: React.DragEvent) => void;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  onPick: (f: File) => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-3xl font-bold tracking-tight">Envie sua planilha de separação</h2>
+        <p className="mt-2 text-muted-foreground">
+          XLSX, XLS ou CSV. O sistema identifica as colunas automaticamente e gera o PDF pronto para impressão.
+        </p>
+      </div>
+
+      <Card
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={onDrop}
+        onClick={() => inputRef.current?.click()}
+        className={`flex cursor-pointer flex-col items-center justify-center gap-4 border-2 border-dashed bg-surface p-16 transition-all ${
+          dragOver ? "border-primary bg-accent" : "border-border hover:border-primary/50"
+        }`}
+        style={{ boxShadow: dragOver ? "var(--shadow-elevated)" : undefined }}
+      >
+        {busy ? (
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        ) : (
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent">
+            <Upload className="h-7 w-7 text-primary" />
+          </div>
+        )}
+        <div className="text-center">
+          <p className="font-semibold">{busy ? "Lendo arquivo..." : "Arraste aqui ou clique para selecionar"}</p>
+          <p className="mt-1 text-sm text-muted-foreground">.xlsx, .xls, .csv até 50MB</p>
+        </div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) onPick(f);
+          }}
+        />
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <FeatureItem icon={<FileSpreadsheet />} title="Detecção automática" desc="Reconhece variações de cabeçalho." />
+        <FeatureItem icon={<Package />} title="FARDOs de até 65 cm" desc="Agrupamento e divisão automática." />
+        <FeatureItem icon={<Download />} title="PDF operacional" desc="Layout paisagem, pronto para imprimir." />
+      </div>
+    </div>
+  );
+}
+
+function FeatureItem({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
+  return (
+    <Card className="bg-surface p-5">
+      <div className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-md bg-accent text-primary [&>svg]:h-4 [&>svg]:w-4">
+        {icon}
+      </div>
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <p className="text-xs text-muted-foreground">{desc}</p>
+    </Card>
+  );
+}
+
+function ValidationStep({
+  state,
+  onContinue,
+  onCancel,
+  busy,
+}: {
+  state: ProcessState;
+  onContinue: () => void;
+  onCancel: () => void;
+  busy: boolean;
+}) {
+  const canContinue = state.missing.length === 0;
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold">Validação da planilha</h2>
+        <p className="text-sm text-muted-foreground">{state.file.name} · {state.rowCount} registros</p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="bg-surface p-5">
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+            <CheckCircle2 className="h-4 w-4 text-success" /> Colunas identificadas
+          </h3>
+          <ul className="space-y-2 text-sm">
+            {(Object.keys(LABELS) as DetectedColumn[]).map((k) => (
+              <li key={k} className="flex items-center justify-between rounded-md bg-muted px-3 py-2">
+                <span className="font-medium">{LABELS[k]}</span>
+                {state.map[k] ? (
+                  <Badge variant="secondary" className="font-mono text-xs">{state.map[k]}</Badge>
+                ) : (
+                  <Badge variant="destructive" className="text-xs">não encontrada</Badge>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Card>
+
+        <Card className="bg-surface p-5">
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+            <AlertTriangle className="h-4 w-4 text-warning" /> Outras colunas
+          </h3>
+          {state.unknown.length ? (
+            <div className="flex flex-wrap gap-2">
+              {state.unknown.map((c) => (
+                <Badge key={c} variant="outline" className="font-mono text-xs">{c}</Badge>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Todas as colunas foram mapeadas.</p>
+          )}
+
+          <h3 className="mt-5 mb-2 text-sm font-semibold">Rodapé operacional</h3>
+          <div className="space-y-1 text-sm">
+            <FooterLine label="Rota" value={state.footer.rota} />
+            <FooterLine label="Pedido Origem" value={state.footer.pedidoOrigem} />
+            <FooterLine label="Separação" value={state.footer.separacao} />
+          </div>
+        </Card>
+      </div>
+
+      {!canContinue && (
+        <Card className="border-destructive/40 bg-destructive/5 p-4 text-sm">
+          <p className="font-semibold text-destructive">Colunas obrigatórias ausentes</p>
+          <p className="text-muted-foreground">
+            Não foi possível encontrar: {state.missing.map((m) => LABELS[m]).join(", ")}. Renomeie os cabeçalhos e envie novamente.
+          </p>
+        </Card>
+      )}
+
+      <div className="flex justify-end gap-2">
+        <Button variant="ghost" onClick={onCancel}>Cancelar</Button>
+        <Button onClick={onContinue} disabled={!canContinue || busy}>
+          {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ArrowRight className="mr-2 h-4 w-4" />}
+          Continuar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function FooterLine({ label, value }: { label: string; value?: string }) {
+  return (
+    <div className="flex justify-between rounded bg-muted px-3 py-1.5">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium">{value ?? "—"}</span>
+    </div>
+  );
+}
+
+function PreviewStep({
+  state,
+  onBack,
+  onDownload,
+}: {
+  state: ProcessState & { fardos: Fardo[] };
+  onBack: () => void;
+  onDownload: () => void;
+}) {
+  const fardos = state.fardos;
+  const totalQtd = fardos.reduce((a, f) => a + f.quantidadeTotal, 0);
+  const avgH = fardos.reduce((a, f) => a + f.alturaTotalCm, 0) / fardos.length;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-end justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Pré-visualização</h2>
+          <p className="text-sm text-muted-foreground">Confira os FARDOs antes de gerar o PDF.</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={onBack}>Voltar</Button>
+          <Button onClick={onDownload}>
+            <Download className="mr-2 h-4 w-4" /> Gerar PDF
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <StatCard label="Total de FARDOs" value={String(fardos.length)} />
+        <StatCard label="Quantidade total" value={String(totalQtd)} />
+        <StatCard label="Altura média" value={`${avgH.toFixed(1)} cm`} />
+      </div>
+
+      <div className="space-y-3">
+        {fardos.map((f, i) => (
+          <Card key={f.numero} className="bg-surface p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="rounded-md bg-primary px-3 py-1 text-sm font-bold text-primary-foreground">
+                  FARDO {f.numero}
+                </div>
+                {i === fardos.length - 1 && (
+                  <Badge variant="destructive" className="font-bold">FIM</Badge>
+                )}
+              </div>
+              <div className="flex gap-4 text-sm">
+                <span><strong>{f.alturaTotalCm.toFixed(1)}</strong> cm</span>
+                <span><strong>{f.quantidadeTotal}</strong> un</span>
+                <span className="text-muted-foreground">{f.itens.length} itens</span>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="text-muted-foreground">
+                  <tr className="border-b border-border">
+                    <th className="px-2 py-1.5 text-left font-medium">Produto</th>
+                    <th className="px-2 py-1.5 text-left font-medium">Endereço</th>
+                    <th className="px-2 py-1.5 text-left font-medium">Código</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Qtd</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Alt. (cm)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {f.itens.map((it, idx) => (
+                    <tr key={idx} className="border-b border-border/50 last:border-0">
+                      <td className="px-2 py-1.5">{it.produto}</td>
+                      <td className="px-2 py-1.5">{it.endereco}</td>
+                      <td className="px-2 py-1.5 font-mono">{it.codigo}</td>
+                      <td className="px-2 py-1.5 text-right">{it.quantidade}</td>
+                      <td className="px-2 py-1.5 text-right">{it.alturaUnitariaCm > 0 ? it.alturaTotalCm.toFixed(2) : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <Card className="bg-surface p-4">
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 text-2xl font-bold">{value}</p>
+    </Card>
+  );
+}
+
+function ResultStep({
+  state,
+  onDownloadAgain,
+  onNew,
+}: {
+  state: ProcessState & { fardos: Fardo[] };
+  onDownloadAgain: () => void;
+  onNew: () => void;
+}) {
+  return (
+    <Card className="bg-surface p-10 text-center">
+      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+        <CheckCircle2 className="h-8 w-8 text-success" />
+      </div>
+      <h2 className="text-2xl font-bold">PDF gerado com sucesso</h2>
+      <p className="mt-2 text-muted-foreground">
+        {state.fardos.length} FARDO{state.fardos.length > 1 ? "s" : ""} a partir de {state.rowCount} registros.
+      </p>
+      <div className="mt-6 flex justify-center gap-2">
+        <Button onClick={onDownloadAgain}>
+          <Download className="mr-2 h-4 w-4" /> Baixar novamente
+        </Button>
+        <Button variant="outline" onClick={onNew}>
+          <RotateCcw className="mr-2 h-4 w-4" /> Novo processamento
+        </Button>
+      </div>
+    </Card>
   );
 }
