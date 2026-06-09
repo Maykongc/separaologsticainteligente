@@ -101,3 +101,30 @@ export function normalizeHeightCm(raw: unknown, columnName: string): number {
   // Heuristic: values > 100 are very likely mm for a single item
   return n > 100 ? n / 10 : n;
 }
+
+// Extracts height (in cm) from a free-text product description.
+// Recognizes patterns like "2750X1850X15MM", "2750 x 1840 x 15 mm" or trailing "15MM".
+const DIMENSION_RE = /(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*mm/i;
+const MM_RE = /(\d+(?:[.,]\d+)?)\s*mm/i;
+const CM_RE = /(\d+(?:[.,]\d+)?)\s*cm/i;
+
+export function extractHeightCmFromText(text: unknown): number {
+  if (text === null || text === undefined) return 0;
+  const s = String(text);
+  const dim = s.match(DIMENSION_RE);
+  if (dim) {
+    const mm = parseFloat(dim[3].replace(",", "."));
+    if (!isNaN(mm) && mm > 0) return +(mm / 10).toFixed(2);
+  }
+  const mm = s.match(MM_RE);
+  if (mm) {
+    const v = parseFloat(mm[1].replace(",", "."));
+    if (!isNaN(v) && v > 0) return +(v / 10).toFixed(2);
+  }
+  const cm = s.match(CM_RE);
+  if (cm) {
+    const v = parseFloat(cm[1].replace(",", "."));
+    if (!isNaN(v) && v > 0) return +v.toFixed(2);
+  }
+  return 0;
+}

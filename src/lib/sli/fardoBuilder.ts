@@ -1,5 +1,5 @@
 import type { ColumnMap } from "./columnDetector";
-import { normalizeHeightCm, parseNumber } from "./columnDetector";
+import { extractHeightCmFromText, normalizeHeightCm, parseNumber } from "./columnDetector";
 
 export const FARDO_MAX_CM = 65;
 
@@ -35,9 +35,19 @@ export function normalizeRows(
     .map((row) => {
       const qtd = Math.max(1, Math.round(parseNumber(row[map.quantidade ?? ""])) || 1);
       const altCol = map.altura ?? "";
-      const altura = altCol ? normalizeHeightCm(row[altCol], altCol) : 0;
+      const produto = String(row[map.produto ?? ""] ?? "").trim();
+      let altura = altCol ? normalizeHeightCm(row[altCol], altCol) : 0;
+      // Fallback: extract MM/CM measurement from product description text
+      if (altura <= 0) altura = extractHeightCmFromText(produto);
+      // Final fallback: scan every cell of the row for an MM/CM pattern
+      if (altura <= 0) {
+        for (const v of Object.values(row)) {
+          const h = extractHeightCmFromText(v);
+          if (h > 0) { altura = h; break; }
+        }
+      }
       return {
-        produto: String(row[map.produto ?? ""] ?? "").trim(),
+        produto,
         endereco: String(row[map.endereco ?? ""] ?? "").trim(),
         codigo: String(row[map.codigo ?? ""] ?? "").trim(),
         quantidade: qtd,

@@ -308,6 +308,8 @@ function ValidationStep({
                 <span className="font-medium">{LABELS[k]}</span>
                 {state.map[k] ? (
                   <Badge variant="secondary" className="font-mono text-xs">{state.map[k]}</Badge>
+                ) : k === "altura" ? (
+                  <Badge variant="secondary" className="text-xs">extraída do Produto (MM→CM)</Badge>
                 ) : (
                   <Badge variant="destructive" className="text-xs">não encontrada</Badge>
                 )}
