@@ -151,12 +151,12 @@ function Index() {
           <ValidationStep state={state} onContinue={buildPreview} onCancel={reset} busy={busy} />
         )}
 
-        {step === "preview" && state?.fardos && (
-          <PreviewStep state={state} onBack={() => setStep("validation")} onDownload={download} />
+        {step === "preview" && state && state.fardos && (
+          <PreviewStep state={{ ...state, fardos: state.fardos }} onBack={() => setStep("validation")} onDownload={download} />
         )}
 
-        {step === "result" && state?.fardos && (
-          <ResultStep state={state} onDownloadAgain={download} onNew={reset} />
+        {step === "result" && state && state.fardos && (
+          <ResultStep state={{ ...state, fardos: state.fardos }} onDownloadAgain={download} onNew={reset} />
         )}
       </main>
 
