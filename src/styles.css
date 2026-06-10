@@ -38,34 +38,34 @@
 
 :root {
   --radius: 0.5rem;
-  --background: oklch(0.985 0.01 130);
-  --foreground: oklch(0.2 0.05 150);
-  --surface: oklch(1 0 0);
-  --surface-foreground: oklch(0.2 0.05 150);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.05 150);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.05 150);
-  --primary: oklch(0.42 0.13 152);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.88 0.18 128);
-  --secondary-foreground: oklch(0.25 0.08 150);
-  --muted: oklch(0.96 0.02 130);
-  --muted-foreground: oklch(0.5 0.04 150);
-  --accent: oklch(0.92 0.12 128);
-  --accent-foreground: oklch(0.25 0.08 150);
-  --destructive: oklch(0.6 0.22 27);
+  --background: oklch(0.96 0.02 85);
+  --foreground: oklch(0.18 0.03 160);
+  --surface: oklch(0.99 0.01 85);
+  --surface-foreground: oklch(0.18 0.03 160);
+  --card: oklch(0.99 0.01 85);
+  --card-foreground: oklch(0.18 0.03 160);
+  --popover: oklch(0.99 0.01 85);
+  --popover-foreground: oklch(0.18 0.03 160);
+  --primary: oklch(0.38 0.08 165);
+  --primary-foreground: oklch(0.98 0.02 85);
+  --secondary: oklch(0.92 0.03 85);
+  --secondary-foreground: oklch(0.25 0.06 165);
+  --muted: oklch(0.93 0.02 85);
+  --muted-foreground: oklch(0.45 0.03 160);
+  --accent: oklch(0.88 0.04 85);
+  --accent-foreground: oklch(0.25 0.06 165);
+  --destructive: oklch(0.55 0.2 27);
   --destructive-foreground: oklch(0.99 0 0);
-  --success: oklch(0.55 0.16 150);
+  --success: oklch(0.5 0.1 165);
   --success-foreground: oklch(0.99 0 0);
-  --warning: oklch(0.88 0.18 95);
-  --warning-foreground: oklch(0.25 0.08 80);
-  --border: oklch(0.9 0.03 130);
-  --input: oklch(0.9 0.03 130);
-  --ring: oklch(0.55 0.18 145);
-  --gradient-header: linear-gradient(135deg, oklch(0.78 0.22 128), oklch(0.65 0.2 135));
-  --shadow-elevated: 0 8px 24px -8px oklch(0.42 0.13 152 / 0.3);
-  --brand-yellow: oklch(0.92 0.18 100);
+  --warning: oklch(0.78 0.15 75);
+  --warning-foreground: oklch(0.25 0.06 80);
+  --border: oklch(0.88 0.02 85);
+  --input: oklch(0.88 0.02 85);
+  --ring: oklch(0.38 0.08 165);
+  --gradient-header: linear-gradient(135deg, oklch(0.96 0.02 85), oklch(0.92 0.03 85));
+  --shadow-elevated: 0 8px 24px -8px oklch(0.38 0.08 165 / 0.25);
+  --brand-cream: oklch(0.96 0.02 85);
 }
 
 
