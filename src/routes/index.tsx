@@ -120,15 +120,15 @@ function Index() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b-4 border-primary bg-secondary">
+      <header className="border-b border-border bg-surface">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md border-2 border-primary" style={{ background: "var(--brand-yellow)" }}>
-              <Boxes className="h-5 w-5 text-primary" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+              <Boxes className="h-5 w-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-lg font-bold tracking-tight text-primary">SLI</h1>
-              <p className="text-xs text-primary/80">Separação Logística Inteligente</p>
+              <h1 className="text-lg font-bold tracking-tight text-foreground">SLI</h1>
+              <p className="text-xs text-muted-foreground">Separação Logística Inteligente</p>
             </div>
           </div>
           <Stepper step={step} />
