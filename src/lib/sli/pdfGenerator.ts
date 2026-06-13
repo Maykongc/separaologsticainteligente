@@ -4,6 +4,11 @@ import type { Fardo } from "./fardoBuilder";
 import type { FooterInfo } from "./columnDetector";
 
 export function generatePdf(fardos: Fardo[], footer: FooterInfo, fileName: string) {
+  const totalEnderecosGeral = new Set(
+    fardos.flatMap((f) => f.itens.map((it) => it.endereco)),
+  ).size;
+  const totalQuantidadeGeral = fardos.reduce((a, f) => a + f.quantidadeTotal, 0);
+
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -56,15 +61,13 @@ export function generatePdf(fardos: Fardo[], footer: FooterInfo, fileName: strin
     doc.setTextColor(60, 60, 60);
     doc.setFont("helvetica", "bold");
 
-    const enderecosDistintos = new Set(fardo.itens.map((it) => it.endereco)).size;
-    const totalLine = `TOTAL ENDEREÇOS: ${enderecosDistintos}     TOTAL QUANTIDADE: ${fardo.quantidadeTotal}`;
-    doc.text(totalLine, 10, pageH - 24);
-
     const parts: string[] = [];
     if (footer.rota) parts.push(`ROTA: ${footer.rota}`);
     if (footer.pedidoOrigem) parts.push(`PEDIDO ORIGEM: ${footer.pedidoOrigem}`);
     if (footer.separacao) parts.push(`SEPARAÇÃO: ${footer.separacao}`);
-    doc.text(parts.join("     |     ") || "—", 10, pageH - 10);
+    parts.push(`TOTAL ENDEREÇOS: ${totalEnderecosGeral}`);
+    parts.push(`TOTAL QUANTIDADE: ${totalQuantidadeGeral}`);
+    doc.text(parts.join("     |     "), 10, pageH - 10);
 
     doc.setFont("helvetica", "normal");
     doc.text(
