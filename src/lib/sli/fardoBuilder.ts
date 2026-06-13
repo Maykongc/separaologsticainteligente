@@ -1,7 +1,7 @@
 import type { ColumnMap } from "./columnDetector";
 import { extractHeightCmFromText, normalizeHeightCm, parseNumber } from "./columnDetector";
 
-export const FARDO_MAX_CM = 65;
+export const FARDO_MAX_CM = 60;
 
 export interface FardoItem {
   produto: string;

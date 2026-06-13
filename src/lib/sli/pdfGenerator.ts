@@ -55,6 +55,11 @@ export function generatePdf(fardos: Fardo[], footer: FooterInfo, fileName: strin
     doc.setFontSize(10);
     doc.setTextColor(60, 60, 60);
     doc.setFont("helvetica", "bold");
+
+    const enderecosDistintos = new Set(fardo.itens.map((it) => it.endereco)).size;
+    const totalLine = `TOTAL ENDEREÇOS: ${enderecosDistintos}     TOTAL QUANTIDADE: ${fardo.quantidadeTotal}`;
+    doc.text(totalLine, 10, pageH - 24);
+
     const parts: string[] = [];
     if (footer.rota) parts.push(`ROTA: ${footer.rota}`);
     if (footer.pedidoOrigem) parts.push(`PEDIDO ORIGEM: ${footer.pedidoOrigem}`);
