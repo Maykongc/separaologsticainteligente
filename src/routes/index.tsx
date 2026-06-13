@@ -33,6 +33,8 @@ interface ProcessState {
   unknown: string[];
   footer: FooterInfo;
   rawRows: Record<string, unknown>[];
+  extraRows: Record<string, unknown>[];
+  extraHeaders: string[];
   fardos?: Fardo[];
 }
 
@@ -70,6 +72,8 @@ function Index() {
         unknown,
         footer,
         rawRows: parsed.sheet1.rows,
+        extraRows: parsed.sheet3?.rows ?? [],
+        extraHeaders: parsed.sheet3?.headers ?? [],
       });
       setStep("validation");
     } catch (e) {
@@ -96,6 +100,30 @@ function Index() {
       if (!fardos.length) {
         toast.error("Nenhum FARDO pôde ser formado.");
         return;
+      }
+      // 3ª aba: cada linha vira 1 FARDO adicional
+      if (state.extraRows.length) {
+        const extraMap = detectColumns(state.extraHeaders).map;
+        const extraNormalized = normalizeRows(state.extraRows, extraMap);
+        let n = fardos[fardos.length - 1].numero;
+        for (const row of extraNormalized) {
+          n += 1;
+          const qtd = row.quantidade || 1;
+          const altTotal = row.alturaUnitariaCm > 0 ? +(row.alturaUnitariaCm * qtd).toFixed(2) : 0;
+          fardos.push({
+            numero: n,
+            itens: [{
+              produto: row.produto,
+              endereco: row.endereco,
+              codigo: row.codigo,
+              quantidade: qtd,
+              alturaUnitariaCm: row.alturaUnitariaCm,
+              alturaTotalCm: altTotal,
+            }],
+            alturaTotalCm: altTotal,
+            quantidadeTotal: qtd,
+          });
+        }
       }
       setState({ ...state, fardos });
       setStep("preview");
