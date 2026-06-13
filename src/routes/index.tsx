@@ -259,7 +259,7 @@ function UploadStep({
 
       <div className="grid gap-4 md:grid-cols-3">
         <FeatureItem icon={<FileSpreadsheet />} title="Detecção automática" desc="Reconhece variações de cabeçalho." />
-        <FeatureItem icon={<Package />} title="FARDOs de até 65 cm" desc="Agrupamento e divisão automática." />
+        <FeatureItem icon={<Package />} title="FARDOs de até 60 cm" desc="Agrupamento e divisão automática." />
         <FeatureItem icon={<Download />} title="PDF operacional" desc="Layout paisagem, pronto para imprimir." />
       </div>
     </div>
