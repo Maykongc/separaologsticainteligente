@@ -72,6 +72,8 @@ function Index() {
         unknown,
         footer,
         rawRows: parsed.sheet1.rows,
+        extraRows: parsed.sheet3?.rows ?? [],
+        extraHeaders: parsed.sheet3?.headers ?? [],
       });
       setStep("validation");
     } catch (e) {
