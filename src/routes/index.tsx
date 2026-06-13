@@ -33,6 +33,8 @@ interface ProcessState {
   unknown: string[];
   footer: FooterInfo;
   rawRows: Record<string, unknown>[];
+  extraRows: Record<string, unknown>[];
+  extraHeaders: string[];
   fardos?: Fardo[];
 }
 
