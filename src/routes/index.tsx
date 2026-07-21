@@ -519,11 +519,21 @@ function PreviewStep({
                   <Badge variant="destructive" className="font-bold">FIM</Badge>
                 )}
               </div>
-              <div className="flex gap-4 text-sm">
+              <div className="flex items-center gap-4 text-sm">
                 <span><strong>{f.alturaTotalCm.toFixed(1)}</strong> / {FARDO_MAX_CM} cm</span>
                 <span><strong>{f.quantidadeTotal}</strong> un</span>
                 <span className="text-muted-foreground">{f.itens.length} itens</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                  onClick={() => deleteFardo(f.numero)}
+                  aria-label={`Excluir FARDO ${f.numero}`}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
+
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
