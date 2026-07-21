@@ -431,6 +431,19 @@ function PreviewStep({
     toast.success(`FARDO ${next.length} criado.`);
   };
 
+  const deleteFardo = (numero: number) => {
+    const target = fardos.find((f) => f.numero === numero);
+    if (!target) return;
+    if (target.itens.length > 0) {
+      toast.error("Remova ou mova os itens antes de excluir o FARDO.");
+      return;
+    }
+    const next = fardos.filter((f) => f.numero !== numero).map((f, i) => ({ ...f, numero: i + 1 }));
+    onUpdateFardos(next);
+    toast.success(`FARDO ${numero} excluído.`);
+  };
+
+
   const moveItem = (srcFardo: number, srcIdx: number, destFardo: number) => {
     if (srcFardo === destFardo) return;
     const src = fardos.find((f) => f.numero === srcFardo);
