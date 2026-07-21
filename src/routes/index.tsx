@@ -465,10 +465,14 @@ function PreviewStep({
         </div>
         <div className="flex gap-2">
           <Button variant="ghost" onClick={onBack}>Voltar</Button>
+          <Button variant="outline" onClick={addEmptyFardo}>
+            <Package className="mr-2 h-4 w-4" /> Novo FARDO
+          </Button>
           <Button onClick={onDownload}>
             <Download className="mr-2 h-4 w-4" /> Gerar PDF
           </Button>
         </div>
+
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
