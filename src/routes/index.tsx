@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, Download, RotateCcw, Loader2, ArrowRight, Boxes } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, Download, RotateCcw, Loader2, ArrowRight, Boxes, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
