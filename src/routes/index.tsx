@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, Download, RotateCcw, Loader2, ArrowRight, Boxes } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, Download, RotateCcw, Loader2, ArrowRight, Boxes, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -181,7 +181,12 @@ function Index() {
         )}
 
         {step === "preview" && state && state.fardos && (
-          <PreviewStep state={{ ...state, fardos: state.fardos }} onBack={() => setStep("validation")} onDownload={download} />
+          <PreviewStep
+            state={{ ...state, fardos: state.fardos }}
+            onBack={() => setStep("validation")}
+            onDownload={download}
+            onUpdateFardos={(fs) => setState({ ...state, fardos: fs })}
+          />
         )}
 
         {step === "result" && state && state.fardos && (
@@ -402,21 +407,54 @@ function PreviewStep({
   state,
   onBack,
   onDownload,
+  onUpdateFardos,
 }: {
   state: ProcessState & { fardos: Fardo[] };
   onBack: () => void;
   onDownload: () => void;
+  onUpdateFardos: (fs: Fardo[]) => void;
 }) {
   const fardos = state.fardos;
   const totalQtd = fardos.reduce((a, f) => a + f.quantidadeTotal, 0);
   const avgH = fardos.reduce((a, f) => a + f.alturaTotalCm, 0) / fardos.length;
+  const [dragOver, setDragOver] = useState<number | null>(null);
+
+  const recalc = (f: Fardo): Fardo => ({
+    ...f,
+    alturaTotalCm: +f.itens.reduce((a, it) => a + (it.alturaUnitariaCm > 0 ? it.alturaTotalCm : 0), 0).toFixed(2),
+    quantidadeTotal: f.itens.reduce((a, it) => a + it.quantidade, 0),
+  });
+
+  const moveItem = (srcFardo: number, srcIdx: number, destFardo: number) => {
+    if (srcFardo === destFardo) return;
+    const src = fardos.find((f) => f.numero === srcFardo);
+    const dest = fardos.find((f) => f.numero === destFardo);
+    if (!src || !dest) return;
+    const item = src.itens[srcIdx];
+    if (!item) return;
+    const itemH = item.alturaUnitariaCm > 0 ? item.alturaTotalCm : 0;
+    if (dest.alturaTotalCm + itemH > FARDO_MAX_CM + 0.01) {
+      toast.error(`Não cabe: ${(dest.alturaTotalCm + itemH).toFixed(1)} cm excederia o limite de ${FARDO_MAX_CM} cm.`);
+      return;
+    }
+    const next = fardos
+      .map((f) => {
+        if (f.numero === srcFardo) return recalc({ ...f, itens: f.itens.filter((_, i) => i !== srcIdx) });
+        if (f.numero === destFardo) return recalc({ ...f, itens: [...f.itens, item] });
+        return f;
+      })
+      .filter((f) => f.itens.length > 0)
+      .map((f, i) => ({ ...f, numero: i + 1 }));
+    onUpdateFardos(next);
+    toast.success(`Item movido para FARDO ${destFardo}.`);
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-end justify-between">
         <div>
           <h2 className="text-2xl font-bold">Pré-visualização</h2>
-          <p className="text-sm text-muted-foreground">Confira os FARDOs antes de gerar o PDF.</p>
+          <p className="text-sm text-muted-foreground">Arraste itens entre FARDOs para reorganizar (limite {FARDO_MAX_CM} cm).</p>
         </div>
         <div className="flex gap-2">
           <Button variant="ghost" onClick={onBack}>Voltar</Button>
@@ -434,7 +472,20 @@ function PreviewStep({
 
       <div className="space-y-3">
         {fardos.map((f, i) => (
-          <Card key={f.numero} className="bg-surface p-4">
+          <Card
+            key={f.numero}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(f.numero); }}
+            onDragLeave={() => setDragOver((v) => (v === f.numero ? null : v))}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(null);
+              const data = e.dataTransfer.getData("text/plain");
+              if (!data) return;
+              const [sf, si] = data.split(":").map(Number);
+              moveItem(sf, si, f.numero);
+            }}
+            className={`bg-surface p-4 transition-colors ${dragOver === f.numero ? "ring-2 ring-primary" : ""}`}
+          >
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="rounded-md bg-primary px-3 py-1 text-sm font-bold text-primary-foreground">
@@ -445,7 +496,7 @@ function PreviewStep({
                 )}
               </div>
               <div className="flex gap-4 text-sm">
-                <span><strong>{f.alturaTotalCm.toFixed(1)}</strong> cm</span>
+                <span><strong>{f.alturaTotalCm.toFixed(1)}</strong> / {FARDO_MAX_CM} cm</span>
                 <span><strong>{f.quantidadeTotal}</strong> un</span>
                 <span className="text-muted-foreground">{f.itens.length} itens</span>
               </div>
@@ -454,6 +505,7 @@ function PreviewStep({
               <table className="w-full text-xs">
                 <thead className="text-muted-foreground">
                   <tr className="border-b border-border">
+                    <th className="w-6 px-2 py-1.5"></th>
                     <th className="px-2 py-1.5 text-left font-medium">Produto</th>
                     <th className="px-2 py-1.5 text-left font-medium">Endereço</th>
                     <th className="px-2 py-1.5 text-left font-medium">Código</th>
@@ -463,7 +515,16 @@ function PreviewStep({
                 </thead>
                 <tbody>
                   {f.itens.map((it, idx) => (
-                    <tr key={idx} className="border-b border-border/50 last:border-0">
+                    <tr
+                      key={idx}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/plain", `${f.numero}:${idx}`);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      className="cursor-grab border-b border-border/50 last:border-0 hover:bg-muted/50 active:cursor-grabbing"
+                    >
+                      <td className="px-2 py-1.5 text-muted-foreground"><GripVertical className="h-3 w-3" /></td>
                       <td className="px-2 py-1.5">{it.produto}</td>
                       <td className="px-2 py-1.5">{it.endereco}</td>
                       <td className="px-2 py-1.5 font-mono">{it.codigo}</td>
@@ -480,6 +541,7 @@ function PreviewStep({
     </div>
   );
 }
+
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
