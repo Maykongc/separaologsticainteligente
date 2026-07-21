@@ -181,7 +181,12 @@ function Index() {
         )}
 
         {step === "preview" && state && state.fardos && (
-          <PreviewStep state={{ ...state, fardos: state.fardos }} onBack={() => setStep("validation")} onDownload={download} />
+          <PreviewStep
+            state={{ ...state, fardos: state.fardos }}
+            onBack={() => setStep("validation")}
+            onDownload={download}
+            onUpdateFardos={(fs) => setState({ ...state, fardos: fs })}
+          />
         )}
 
         {step === "result" && state && state.fardos && (
