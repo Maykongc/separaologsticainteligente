@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, Download, RotateCcw, Loader2, ArrowRight, Boxes, GripVertical } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, Download, RotateCcw, Loader2, ArrowRight, Boxes, GripVertical, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -431,6 +431,19 @@ function PreviewStep({
     toast.success(`FARDO ${next.length} criado.`);
   };
 
+  const deleteFardo = (numero: number) => {
+    const target = fardos.find((f) => f.numero === numero);
+    if (!target) return;
+    if (target.itens.length > 0) {
+      toast.error("Remova ou mova os itens antes de excluir o FARDO.");
+      return;
+    }
+    const next = fardos.filter((f) => f.numero !== numero).map((f, i) => ({ ...f, numero: i + 1 }));
+    onUpdateFardos(next);
+    toast.success(`FARDO ${numero} excluído.`);
+  };
+
+
   const moveItem = (srcFardo: number, srcIdx: number, destFardo: number) => {
     if (srcFardo === destFardo) return;
     const src = fardos.find((f) => f.numero === srcFardo);
@@ -506,11 +519,21 @@ function PreviewStep({
                   <Badge variant="destructive" className="font-bold">FIM</Badge>
                 )}
               </div>
-              <div className="flex gap-4 text-sm">
+              <div className="flex items-center gap-4 text-sm">
                 <span><strong>{f.alturaTotalCm.toFixed(1)}</strong> / {FARDO_MAX_CM} cm</span>
                 <span><strong>{f.quantidadeTotal}</strong> un</span>
                 <span className="text-muted-foreground">{f.itens.length} itens</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                  onClick={() => deleteFardo(f.numero)}
+                  aria-label={`Excluir FARDO ${f.numero}`}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
+
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
