@@ -450,8 +450,8 @@ function PreviewStep({
         if (f.numero === destFardo) return recalc({ ...f, itens: [...f.itens, item] });
         return f;
       })
-      .filter((f) => f.itens.length > 0)
       .map((f, i) => ({ ...f, numero: i + 1 }));
+
     onUpdateFardos(next);
     toast.success(`Item movido para FARDO ${destFardo}.`);
   };
