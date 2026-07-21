@@ -425,11 +425,18 @@ function PreviewStep({
     quantidadeTotal: f.itens.reduce((a, it) => a + it.quantidade, 0),
   });
 
+  const addEmptyFardo = () => {
+    const next = [...fardos, { numero: fardos.length + 1, itens: [], alturaTotalCm: 0, quantidadeTotal: 0 }];
+    onUpdateFardos(next);
+    toast.success(`FARDO ${next.length} criado.`);
+  };
+
   const moveItem = (srcFardo: number, srcIdx: number, destFardo: number) => {
     if (srcFardo === destFardo) return;
     const src = fardos.find((f) => f.numero === srcFardo);
     const dest = fardos.find((f) => f.numero === destFardo);
     if (!src || !dest) return;
+
     const item = src.itens[srcIdx];
     if (!item) return;
     const itemH = item.alturaUnitariaCm > 0 ? item.alturaTotalCm : 0;
@@ -443,8 +450,8 @@ function PreviewStep({
         if (f.numero === destFardo) return recalc({ ...f, itens: [...f.itens, item] });
         return f;
       })
-      .filter((f) => f.itens.length > 0)
       .map((f, i) => ({ ...f, numero: i + 1 }));
+
     onUpdateFardos(next);
     toast.success(`Item movido para FARDO ${destFardo}.`);
   };
@@ -458,10 +465,14 @@ function PreviewStep({
         </div>
         <div className="flex gap-2">
           <Button variant="ghost" onClick={onBack}>Voltar</Button>
+          <Button variant="outline" onClick={addEmptyFardo}>
+            <Package className="mr-2 h-4 w-4" /> Novo FARDO
+          </Button>
           <Button onClick={onDownload}>
             <Download className="mr-2 h-4 w-4" /> Gerar PDF
           </Button>
         </div>
+
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
