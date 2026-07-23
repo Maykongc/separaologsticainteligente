@@ -419,6 +419,11 @@ function PreviewStep({
   const avgH = fardos.reduce((a, f) => a + f.alturaTotalCm, 0) / fardos.length;
   const [dragOver, setDragOver] = useState<number | null>(null);
 
+  const isMDF = (produto: string) => /\bmdf\b/i.test(produto);
+  const hasMDF = (f: Fardo) => f.itens.some((it) => isMDF(it.produto));
+  const maxFor = (f: Fardo, incoming?: { produto: string }) =>
+    hasMDF(f) || (incoming && isMDF(incoming.produto)) ? FARDO_MAX_CM : Infinity;
+
   const recalc = (f: Fardo): Fardo => ({
     ...f,
     alturaTotalCm: +f.itens.reduce((a, it) => a + (it.alturaUnitariaCm > 0 ? it.alturaTotalCm : 0), 0).toFixed(2),
@@ -443,6 +448,17 @@ function PreviewStep({
     toast.success(`FARDO ${numero} excluído.`);
   };
 
+  const reorderFardo = (srcNumero: number, destNumero: number) => {
+    if (srcNumero === destNumero) return;
+    const srcIdx = fardos.findIndex((f) => f.numero === srcNumero);
+    const destIdx = fardos.findIndex((f) => f.numero === destNumero);
+    if (srcIdx < 0 || destIdx < 0) return;
+    const arr = [...fardos];
+    const [moved] = arr.splice(srcIdx, 1);
+    arr.splice(destIdx, 0, moved);
+    onUpdateFardos(arr.map((f, i) => ({ ...f, numero: i + 1 })));
+    toast.success(`FARDO movido para posição ${destIdx + 1}.`);
+  };
 
   const moveItem = (srcFardo: number, srcIdx: number, destFardo: number) => {
     if (srcFardo === destFardo) return;
@@ -453,8 +469,9 @@ function PreviewStep({
     const item = src.itens[srcIdx];
     if (!item) return;
     const itemH = item.alturaUnitariaCm > 0 ? item.alturaTotalCm : 0;
-    if (dest.alturaTotalCm + itemH > FARDO_MAX_CM + 0.01) {
-      toast.error(`Não cabe: ${(dest.alturaTotalCm + itemH).toFixed(1)} cm excederia o limite de ${FARDO_MAX_CM} cm.`);
+    const limit = maxFor(dest, item);
+    if (dest.alturaTotalCm + itemH > limit + 0.01) {
+      toast.error(`Não cabe: ${(dest.alturaTotalCm + itemH).toFixed(1)} cm excederia o limite de ${limit} cm.`);
       return;
     }
     const next = fardos
@@ -495,7 +512,10 @@ function PreviewStep({
       </div>
 
       <div className="space-y-3">
-        {fardos.map((f, i) => (
+        {fardos.map((f, i) => {
+          const limit = maxFor(f);
+          const over = limit !== Infinity && f.alturaTotalCm > limit + 0.01;
+          return (
           <Card
             key={f.numero}
             onDragOver={(e) => { e.preventDefault(); setDragOver(f.numero); }}
@@ -505,6 +525,10 @@ function PreviewStep({
               setDragOver(null);
               const data = e.dataTransfer.getData("text/plain");
               if (!data) return;
+              if (data.startsWith("fardo:")) {
+                reorderFardo(Number(data.slice(6)), f.numero);
+                return;
+              }
               const [sf, si] = data.split(":").map(Number);
               moveItem(sf, si, f.numero);
             }}
@@ -512,15 +536,30 @@ function PreviewStep({
           >
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="rounded-md bg-primary px-3 py-1 text-sm font-bold text-primary-foreground">
+                <div
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData("text/plain", `fardo:${f.numero}`);
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  className="flex cursor-grab items-center gap-2 rounded-md bg-primary px-3 py-1 text-sm font-bold text-primary-foreground active:cursor-grabbing"
+                  title="Arraste para reordenar"
+                >
+                  <GripVertical className="h-4 w-4 opacity-70" />
                   FARDO {f.numero}
                 </div>
                 {i === fardos.length - 1 && (
                   <Badge variant="destructive" className="font-bold">FIM</Badge>
                 )}
+                {limit === Infinity && (
+                  <Badge variant="outline" className="text-xs">sem MDF · sem limite</Badge>
+                )}
               </div>
               <div className="flex items-center gap-4 text-sm">
-                <span><strong>{f.alturaTotalCm.toFixed(1)}</strong> / {FARDO_MAX_CM} cm</span>
+                <span className={over ? "text-destructive" : ""}>
+                  <strong>{f.alturaTotalCm.toFixed(1)}</strong> / {limit === Infinity ? "∞" : `${limit}`} cm
+                </span>
+
                 <span><strong>{f.quantidadeTotal}</strong> un</span>
                 <span className="text-muted-foreground">{f.itens.length} itens</span>
                 <Button
@@ -570,7 +609,8 @@ function PreviewStep({
               </table>
             </div>
           </Card>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
