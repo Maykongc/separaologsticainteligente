@@ -512,7 +512,10 @@ function PreviewStep({
       </div>
 
       <div className="space-y-3">
-        {fardos.map((f, i) => (
+        {fardos.map((f, i) => {
+          const limit = maxFor(f);
+          const over = limit !== Infinity && f.alturaTotalCm > limit + 0.01;
+          return (
           <Card
             key={f.numero}
             onDragOver={(e) => { e.preventDefault(); setDragOver(f.numero); }}
@@ -522,6 +525,10 @@ function PreviewStep({
               setDragOver(null);
               const data = e.dataTransfer.getData("text/plain");
               if (!data) return;
+              if (data.startsWith("fardo:")) {
+                reorderFardo(Number(data.slice(6)), f.numero);
+                return;
+              }
               const [sf, si] = data.split(":").map(Number);
               moveItem(sf, si, f.numero);
             }}
@@ -529,15 +536,30 @@ function PreviewStep({
           >
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="rounded-md bg-primary px-3 py-1 text-sm font-bold text-primary-foreground">
+                <div
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData("text/plain", `fardo:${f.numero}`);
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  className="flex cursor-grab items-center gap-2 rounded-md bg-primary px-3 py-1 text-sm font-bold text-primary-foreground active:cursor-grabbing"
+                  title="Arraste para reordenar"
+                >
+                  <GripVertical className="h-4 w-4 opacity-70" />
                   FARDO {f.numero}
                 </div>
                 {i === fardos.length - 1 && (
                   <Badge variant="destructive" className="font-bold">FIM</Badge>
                 )}
+                {limit === Infinity && (
+                  <Badge variant="outline" className="text-xs">sem MDF · sem limite</Badge>
+                )}
               </div>
               <div className="flex items-center gap-4 text-sm">
-                <span><strong>{f.alturaTotalCm.toFixed(1)}</strong> / {FARDO_MAX_CM} cm</span>
+                <span className={over ? "text-destructive" : ""}>
+                  <strong>{f.alturaTotalCm.toFixed(1)}</strong> / {limit === Infinity ? "∞" : `${limit}`} cm
+                </span>
+
                 <span><strong>{f.quantidadeTotal}</strong> un</span>
                 <span className="text-muted-foreground">{f.itens.length} itens</span>
                 <Button
