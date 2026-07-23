@@ -419,6 +419,11 @@ function PreviewStep({
   const avgH = fardos.reduce((a, f) => a + f.alturaTotalCm, 0) / fardos.length;
   const [dragOver, setDragOver] = useState<number | null>(null);
 
+  const isMDF = (produto: string) => /\bmdf\b/i.test(produto);
+  const hasMDF = (f: Fardo) => f.itens.some((it) => isMDF(it.produto));
+  const maxFor = (f: Fardo, incoming?: { produto: string }) =>
+    hasMDF(f) || (incoming && isMDF(incoming.produto)) ? FARDO_MAX_CM : Infinity;
+
   const recalc = (f: Fardo): Fardo => ({
     ...f,
     alturaTotalCm: +f.itens.reduce((a, it) => a + (it.alturaUnitariaCm > 0 ? it.alturaTotalCm : 0), 0).toFixed(2),
@@ -443,6 +448,17 @@ function PreviewStep({
     toast.success(`FARDO ${numero} excluído.`);
   };
 
+  const reorderFardo = (srcNumero: number, destNumero: number) => {
+    if (srcNumero === destNumero) return;
+    const srcIdx = fardos.findIndex((f) => f.numero === srcNumero);
+    const destIdx = fardos.findIndex((f) => f.numero === destNumero);
+    if (srcIdx < 0 || destIdx < 0) return;
+    const arr = [...fardos];
+    const [moved] = arr.splice(srcIdx, 1);
+    arr.splice(destIdx, 0, moved);
+    onUpdateFardos(arr.map((f, i) => ({ ...f, numero: i + 1 })));
+    toast.success(`FARDO movido para posição ${destIdx + 1}.`);
+  };
 
   const moveItem = (srcFardo: number, srcIdx: number, destFardo: number) => {
     if (srcFardo === destFardo) return;
@@ -453,8 +469,9 @@ function PreviewStep({
     const item = src.itens[srcIdx];
     if (!item) return;
     const itemH = item.alturaUnitariaCm > 0 ? item.alturaTotalCm : 0;
-    if (dest.alturaTotalCm + itemH > FARDO_MAX_CM + 0.01) {
-      toast.error(`Não cabe: ${(dest.alturaTotalCm + itemH).toFixed(1)} cm excederia o limite de ${FARDO_MAX_CM} cm.`);
+    const limit = maxFor(dest, item);
+    if (dest.alturaTotalCm + itemH > limit + 0.01) {
+      toast.error(`Não cabe: ${(dest.alturaTotalCm + itemH).toFixed(1)} cm excederia o limite de ${limit} cm.`);
       return;
     }
     const next = fardos
