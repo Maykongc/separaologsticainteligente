@@ -609,7 +609,8 @@ function PreviewStep({
               </table>
             </div>
           </Card>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
