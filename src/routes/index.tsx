@@ -419,7 +419,9 @@ function PreviewStep({
   const avgH = fardos.reduce((a, f) => a + f.alturaTotalCm, 0) / fardos.length;
   const [dragOver, setDragOver] = useState<number | null>(null);
 
-  const isMDF = (produto: string) => /\bmdf\b/i.test(produto);
+  // MDF = chapa inteira. TIRA/PEÇA/CORTE de MDF não contam para o limite de altura.
+  const isMDF = (produto: string) =>
+    /\bmdf\b/i.test(produto) && !/\b(tira|tiras|peça|peca|peças|pecas|corte|cortes|sarrafo|sarrafos)\b/i.test(produto);
   const hasMDF = (f: Fardo) => f.itens.some((it) => isMDF(it.produto));
   const maxFor = (f: Fardo, incoming?: { produto: string }) =>
     hasMDF(f) || (incoming && isMDF(incoming.produto)) ? FARDO_MAX_CM : Infinity;
