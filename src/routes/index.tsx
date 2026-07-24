@@ -46,6 +46,12 @@ const LABELS: Record<DetectedColumn, string> = {
   altura: "Altura",
 };
 
+function sortItensByEndereco(itens: FardoItem[]): FardoItem[] {
+  return [...itens].sort((a, b) =>
+    (a.endereco ?? "").localeCompare(b.endereco ?? "", "pt-BR", { numeric: true, sensitivity: "base" }),
+  );
+}
+
 function mergeFardoByCode(f: Fardo): Fardo {
   const byCode = new Map<string, FardoItem>();
   const out: FardoItem[] = [];
@@ -62,11 +68,12 @@ function mergeFardoByCode(f: Fardo): Fardo {
       out.push(copy);
     }
   }
+  const sorted = sortItensByEndereco(out);
   return {
     ...f,
-    itens: out,
-    alturaTotalCm: +out.reduce((a, v) => a + (v.alturaUnitariaCm > 0 ? v.alturaTotalCm : 0), 0).toFixed(2),
-    quantidadeTotal: out.reduce((a, v) => a + v.quantidade, 0),
+    itens: sorted,
+    alturaTotalCm: +sorted.reduce((a, v) => a + (v.alturaUnitariaCm > 0 ? v.alturaTotalCm : 0), 0).toFixed(2),
+    quantidadeTotal: sorted.reduce((a, v) => a + v.quantidade, 0),
   };
 }
 
