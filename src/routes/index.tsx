@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, Download, RotateCcw, Loader2, ArrowRight, Boxes, GripVertical, X } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, Download, RotateCcw, Loader2, ArrowRight, Boxes, GripVertical, X, Scissors } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { parseFile } from "@/lib/sli/fileParser";
 import { detectColumns, detectFooter, type ColumnMap, type DetectedColumn, type FooterInfo } from "@/lib/sli/columnDetector";
-import { normalizeRows, buildFardos, FARDO_MAX_CM, type Fardo } from "@/lib/sli/fardoBuilder";
+import { normalizeRows, buildFardos, FARDO_MAX_CM, type Fardo, type FardoItem } from "@/lib/sli/fardoBuilder";
 import { generatePdf } from "@/lib/sli/pdfGenerator";
 import { toast } from "sonner";
 
@@ -45,6 +45,30 @@ const LABELS: Record<DetectedColumn, string> = {
   quantidade: "Quantidade",
   altura: "Altura",
 };
+
+function mergeFardoByCode(f: Fardo): Fardo {
+  const byCode = new Map<string, FardoItem>();
+  const out: FardoItem[] = [];
+  for (const it of f.itens) {
+    const key = (it.codigo ?? "").trim();
+    if (!key) { out.push({ ...it }); continue; }
+    const existing = byCode.get(key);
+    if (existing) {
+      existing.quantidade += it.quantidade;
+      existing.alturaTotalCm = +(existing.alturaTotalCm + it.alturaTotalCm).toFixed(2);
+    } else {
+      const copy = { ...it };
+      byCode.set(key, copy);
+      out.push(copy);
+    }
+  }
+  return {
+    ...f,
+    itens: out,
+    alturaTotalCm: +out.reduce((a, v) => a + (v.alturaUnitariaCm > 0 ? v.alturaTotalCm : 0), 0).toFixed(2),
+    quantidadeTotal: out.reduce((a, v) => a + v.quantidade, 0),
+  };
+}
 
 function Index() {
   const [step, setStep] = useState<Step>("upload");
@@ -125,7 +149,9 @@ function Index() {
           });
         }
       }
-      setState({ ...state, fardos });
+      // Unifica itens com mesmo código dentro de cada FARDO
+      const merged = fardos.map(mergeFardoByCode);
+      setState({ ...state, fardos: merged });
       setStep("preview");
     } finally {
       setBusy(false);
@@ -479,13 +505,52 @@ function PreviewStep({
     const next = fardos
       .map((f) => {
         if (f.numero === srcFardo) return recalc({ ...f, itens: f.itens.filter((_, i) => i !== srcIdx) });
-        if (f.numero === destFardo) return recalc({ ...f, itens: [...f.itens, item] });
+        if (f.numero === destFardo) return mergeFardoByCode({ ...f, itens: [...f.itens, item] });
         return f;
       })
       .map((f, i) => ({ ...f, numero: i + 1 }));
 
     onUpdateFardos(next);
     toast.success(`Item movido para FARDO ${destFardo}.`);
+  };
+
+  const splitItem = (fardoNum: number, idx: number) => {
+    const f = fardos.find((x) => x.numero === fardoNum);
+    const it = f?.itens[idx];
+    if (!f || !it) return;
+    if (it.quantidade <= 1) {
+      toast.error("Quantidade insuficiente para dividir.");
+      return;
+    }
+    const suggested = String(Math.floor(it.quantidade / 2));
+    const input = window.prompt(
+      `Dividir ${it.quantidade} un de "${it.produto}"\nQuantas unidades separar em um novo item?`,
+      suggested,
+    );
+    if (input == null) return;
+    const n = Math.floor(Number(input));
+    if (!Number.isFinite(n) || n <= 0 || n >= it.quantidade) {
+      toast.error(`Informe um número entre 1 e ${it.quantidade - 1}.`);
+      return;
+    }
+    const unit = it.alturaUnitariaCm;
+    const partA: FardoItem = {
+      ...it,
+      quantidade: it.quantidade - n,
+      alturaTotalCm: unit > 0 ? +((it.quantidade - n) * unit).toFixed(2) : 0,
+    };
+    const partB: FardoItem = {
+      ...it,
+      quantidade: n,
+      alturaTotalCm: unit > 0 ? +(n * unit).toFixed(2) : 0,
+    };
+    const next = fardos.map((x) =>
+      x.numero === fardoNum
+        ? recalc({ ...x, itens: x.itens.flatMap((v, i) => (i === idx ? [partA, partB] : [v])) })
+        : x,
+    );
+    onUpdateFardos(next);
+    toast.success(`Dividido em ${partA.quantidade} + ${partB.quantidade}. Arraste uma parte para outro FARDO.`);
   };
 
   return (
@@ -586,6 +651,7 @@ function PreviewStep({
                     <th className="px-2 py-1.5 text-left font-medium">Código</th>
                     <th className="px-2 py-1.5 text-right font-medium">Qtd</th>
                     <th className="px-2 py-1.5 text-right font-medium">Alt. (cm)</th>
+                    <th className="w-8 px-2 py-1.5"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -605,6 +671,19 @@ function PreviewStep({
                       <td className="px-2 py-1.5 font-mono">{it.codigo}</td>
                       <td className="px-2 py-1.5 text-right">{it.quantidade}</td>
                       <td className="px-2 py-1.5 text-right">{it.alturaUnitariaCm > 0 ? it.alturaTotalCm.toFixed(2) : "—"}</td>
+                      <td className="px-2 py-1.5 text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-primary"
+                          onClick={(e) => { e.stopPropagation(); splitItem(f.numero, idx); }}
+                          disabled={it.quantidade <= 1}
+                          title="Dividir quantidade"
+                          aria-label="Dividir quantidade"
+                        >
+                          <Scissors className="h-3.5 w-3.5" />
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
