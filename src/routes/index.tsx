@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, Download, RotateCcw, Loader2, ArrowRight, Boxes, GripVertical, X, Scissors } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, Download, RotateCcw, Loader2, ArrowRight, Boxes, GripVertical, X, Scissors, Combine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +46,12 @@ const LABELS: Record<DetectedColumn, string> = {
   altura: "Altura",
 };
 
+function sortItensByEndereco(itens: FardoItem[]): FardoItem[] {
+  return [...itens].sort((a, b) =>
+    (a.endereco ?? "").localeCompare(b.endereco ?? "", "pt-BR", { numeric: true, sensitivity: "base" }),
+  );
+}
+
 function mergeFardoByCode(f: Fardo): Fardo {
   const byCode = new Map<string, FardoItem>();
   const out: FardoItem[] = [];
@@ -62,11 +68,12 @@ function mergeFardoByCode(f: Fardo): Fardo {
       out.push(copy);
     }
   }
+  const sorted = sortItensByEndereco(out);
   return {
     ...f,
-    itens: out,
-    alturaTotalCm: +out.reduce((a, v) => a + (v.alturaUnitariaCm > 0 ? v.alturaTotalCm : 0), 0).toFixed(2),
-    quantidadeTotal: out.reduce((a, v) => a + v.quantidade, 0),
+    itens: sorted,
+    alturaTotalCm: +sorted.reduce((a, v) => a + (v.alturaUnitariaCm > 0 ? v.alturaTotalCm : 0), 0).toFixed(2),
+    quantidadeTotal: sorted.reduce((a, v) => a + v.quantidade, 0),
   };
 }
 
@@ -452,11 +459,15 @@ function PreviewStep({
   const maxFor = (f: Fardo, incoming?: { produto: string }) =>
     hasMDF(f) || (incoming && isMDF(incoming.produto)) ? FARDO_MAX_CM : Infinity;
 
-  const recalc = (f: Fardo): Fardo => ({
-    ...f,
-    alturaTotalCm: +f.itens.reduce((a, it) => a + (it.alturaUnitariaCm > 0 ? it.alturaTotalCm : 0), 0).toFixed(2),
-    quantidadeTotal: f.itens.reduce((a, it) => a + it.quantidade, 0),
-  });
+  const recalc = (f: Fardo): Fardo => {
+    const itens = sortItensByEndereco(f.itens);
+    return {
+      ...f,
+      itens,
+      alturaTotalCm: +itens.reduce((a, it) => a + (it.alturaUnitariaCm > 0 ? it.alturaTotalCm : 0), 0).toFixed(2),
+      quantidadeTotal: itens.reduce((a, it) => a + it.quantidade, 0),
+    };
+  };
 
   const addEmptyFardo = () => {
     const next = [...fardos, { numero: fardos.length + 1, itens: [], alturaTotalCm: 0, quantidadeTotal: 0 }];
@@ -544,13 +555,35 @@ function PreviewStep({
       quantidade: n,
       alturaTotalCm: unit > 0 ? +(n * unit).toFixed(2) : 0,
     };
-    const next = fardos.map((x) =>
-      x.numero === fardoNum
-        ? recalc({ ...x, itens: x.itens.flatMap((v, i) => (i === idx ? [partA, partB] : [v])) })
-        : x,
-    );
+    const newFardo: Fardo = {
+      numero: fardos.length + 1,
+      itens: [partB],
+      alturaTotalCm: partB.alturaTotalCm,
+      quantidadeTotal: partB.quantidade,
+    };
+    const next = [
+      ...fardos.map((x) =>
+        x.numero === fardoNum
+          ? recalc({ ...x, itens: x.itens.map((v, i) => (i === idx ? partA : v)) })
+          : x,
+      ),
+      newFardo,
+    ].map((f, i) => ({ ...f, numero: i + 1 }));
     onUpdateFardos(next);
-    toast.success(`Dividido em ${partA.quantidade} + ${partB.quantidade}. Arraste uma parte para outro FARDO.`);
+    toast.success(`Separado ${partB.quantidade} un em novo FARDO ${next.length} (restam ${partA.quantidade}).`);
+  };
+
+  const unifyFardo = (fardoNum: number) => {
+    const target = fardos.find((f) => f.numero === fardoNum);
+    if (!target) return;
+    const before = target.itens.length;
+    const merged = mergeFardoByCode(target);
+    if (merged.itens.length === before) {
+      toast.info("Nenhum código duplicado neste FARDO.");
+      return;
+    }
+    onUpdateFardos(fardos.map((f) => (f.numero === fardoNum ? merged : f)));
+    toast.success(`Unificados ${before - merged.itens.length} item(ns) duplicado(s).`);
   };
 
   return (
@@ -629,6 +662,16 @@ function PreviewStep({
 
                 <span><strong>{f.quantidadeTotal}</strong> un</span>
                 <span className="text-muted-foreground">{f.itens.length} itens</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-primary"
+                  onClick={() => unifyFardo(f.numero)}
+                  disabled={f.itens.length < 2}
+                  title="Unificar itens com o mesmo código"
+                >
+                  <Combine className="h-3.5 w-3.5" /> Unificar
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
