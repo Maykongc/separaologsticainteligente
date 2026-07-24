@@ -505,13 +505,52 @@ function PreviewStep({
     const next = fardos
       .map((f) => {
         if (f.numero === srcFardo) return recalc({ ...f, itens: f.itens.filter((_, i) => i !== srcIdx) });
-        if (f.numero === destFardo) return recalc({ ...f, itens: [...f.itens, item] });
+        if (f.numero === destFardo) return mergeFardoByCode({ ...f, itens: [...f.itens, item] });
         return f;
       })
       .map((f, i) => ({ ...f, numero: i + 1 }));
 
     onUpdateFardos(next);
     toast.success(`Item movido para FARDO ${destFardo}.`);
+  };
+
+  const splitItem = (fardoNum: number, idx: number) => {
+    const f = fardos.find((x) => x.numero === fardoNum);
+    const it = f?.itens[idx];
+    if (!f || !it) return;
+    if (it.quantidade <= 1) {
+      toast.error("Quantidade insuficiente para dividir.");
+      return;
+    }
+    const suggested = String(Math.floor(it.quantidade / 2));
+    const input = window.prompt(
+      `Dividir ${it.quantidade} un de "${it.produto}"\nQuantas unidades separar em um novo item?`,
+      suggested,
+    );
+    if (input == null) return;
+    const n = Math.floor(Number(input));
+    if (!Number.isFinite(n) || n <= 0 || n >= it.quantidade) {
+      toast.error(`Informe um número entre 1 e ${it.quantidade - 1}.`);
+      return;
+    }
+    const unit = it.alturaUnitariaCm;
+    const partA: FardoItem = {
+      ...it,
+      quantidade: it.quantidade - n,
+      alturaTotalCm: unit > 0 ? +((it.quantidade - n) * unit).toFixed(2) : 0,
+    };
+    const partB: FardoItem = {
+      ...it,
+      quantidade: n,
+      alturaTotalCm: unit > 0 ? +(n * unit).toFixed(2) : 0,
+    };
+    const next = fardos.map((x) =>
+      x.numero === fardoNum
+        ? recalc({ ...x, itens: x.itens.flatMap((v, i) => (i === idx ? [partA, partB] : [v])) })
+        : x,
+    );
+    onUpdateFardos(next);
+    toast.success(`Dividido em ${partA.quantidade} + ${partB.quantidade}. Arraste uma parte para outro FARDO.`);
   };
 
   return (
