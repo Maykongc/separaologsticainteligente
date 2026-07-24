@@ -477,6 +477,12 @@ function PreviewStep({
     toast.success(`FARDO ${next.length} criado.`);
   };
 
+  const addClosedFardo = () => {
+    const next = [...fardos, { numero: fardos.length + 1, itens: [], alturaTotalCm: 0, quantidadeTotal: 0, fechado: true }];
+    onUpdateFardos(next);
+    toast.success(`FARDO fechado ${next.length} criado (máx. ${FARDO_FECHADO_MAX_CM} cm).`);
+  };
+
   const deleteFardo = (numero: number) => {
     const target = fardos.find((f) => f.numero === numero);
     if (!target) return;
