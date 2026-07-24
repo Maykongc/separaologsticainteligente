@@ -12,11 +12,14 @@ export interface FardoItem {
   alturaTotalCm: number;
 }
 
+export const FARDO_FECHADO_MAX_CM = 70;
+
 export interface Fardo {
   numero: number;
   itens: FardoItem[];
   alturaTotalCm: number;
   quantidadeTotal: number;
+  fechado?: boolean;
 }
 
 interface NormalizedRow {
