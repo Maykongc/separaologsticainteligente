@@ -555,13 +555,35 @@ function PreviewStep({
       quantidade: n,
       alturaTotalCm: unit > 0 ? +(n * unit).toFixed(2) : 0,
     };
-    const next = fardos.map((x) =>
-      x.numero === fardoNum
-        ? recalc({ ...x, itens: x.itens.flatMap((v, i) => (i === idx ? [partA, partB] : [v])) })
-        : x,
-    );
+    const newFardo: Fardo = {
+      numero: fardos.length + 1,
+      itens: [partB],
+      alturaTotalCm: partB.alturaTotalCm,
+      quantidadeTotal: partB.quantidade,
+    };
+    const next = [
+      ...fardos.map((x) =>
+        x.numero === fardoNum
+          ? recalc({ ...x, itens: x.itens.map((v, i) => (i === idx ? partA : v)) })
+          : x,
+      ),
+      newFardo,
+    ].map((f, i) => ({ ...f, numero: i + 1 }));
     onUpdateFardos(next);
-    toast.success(`Dividido em ${partA.quantidade} + ${partB.quantidade}. Arraste uma parte para outro FARDO.`);
+    toast.success(`Separado ${partB.quantidade} un em novo FARDO ${next.length} (restam ${partA.quantidade}).`);
+  };
+
+  const unifyFardo = (fardoNum: number) => {
+    const target = fardos.find((f) => f.numero === fardoNum);
+    if (!target) return;
+    const before = target.itens.length;
+    const merged = mergeFardoByCode(target);
+    if (merged.itens.length === before) {
+      toast.info("Nenhum código duplicado neste FARDO.");
+      return;
+    }
+    onUpdateFardos(fardos.map((f) => (f.numero === fardoNum ? merged : f)));
+    toast.success(`Unificados ${before - merged.itens.length} item(ns) duplicado(s).`);
   };
 
   return (
