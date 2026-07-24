@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, Download, RotateCcw, Loader2, ArrowRight, Boxes, GripVertical, X } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, Download, RotateCcw, Loader2, ArrowRight, Boxes, GripVertical, X, Scissors } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { parseFile } from "@/lib/sli/fileParser";
 import { detectColumns, detectFooter, type ColumnMap, type DetectedColumn, type FooterInfo } from "@/lib/sli/columnDetector";
-import { normalizeRows, buildFardos, FARDO_MAX_CM, type Fardo } from "@/lib/sli/fardoBuilder";
+import { normalizeRows, buildFardos, FARDO_MAX_CM, type Fardo, type FardoItem } from "@/lib/sli/fardoBuilder";
 import { generatePdf } from "@/lib/sli/pdfGenerator";
 import { toast } from "sonner";
 
