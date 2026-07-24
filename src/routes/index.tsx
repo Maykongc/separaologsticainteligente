@@ -125,7 +125,9 @@ function Index() {
           });
         }
       }
-      setState({ ...state, fardos });
+      // Unifica itens com mesmo código dentro de cada FARDO
+      const merged = fardos.map(mergeFardoByCode);
+      setState({ ...state, fardos: merged });
       setStep("preview");
     } finally {
       setBusy(false);
