@@ -456,8 +456,10 @@ function PreviewStep({
   const isMDF = (produto: string) =>
     /\bmdf\b/i.test(produto) && !/\b(tira|tiras|peça|peca|peças|pecas|corte|cortes|sarrafo|sarrafos)\b/i.test(produto);
   const hasMDF = (f: Fardo) => f.itens.some((it) => isMDF(it.produto));
-  const maxFor = (f: Fardo, incoming?: { produto: string }) =>
-    hasMDF(f) || (incoming && isMDF(incoming.produto)) ? FARDO_MAX_CM : Infinity;
+  const maxFor = (f: Fardo, incoming?: { produto: string }) => {
+    if (f.fechado) return FARDO_FECHADO_MAX_CM;
+    return hasMDF(f) || (incoming && isMDF(incoming.produto)) ? FARDO_MAX_CM : Infinity;
+  };
 
   const recalc = (f: Fardo): Fardo => {
     const itens = sortItensByEndereco(f.itens);
