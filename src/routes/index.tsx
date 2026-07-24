@@ -459,11 +459,15 @@ function PreviewStep({
   const maxFor = (f: Fardo, incoming?: { produto: string }) =>
     hasMDF(f) || (incoming && isMDF(incoming.produto)) ? FARDO_MAX_CM : Infinity;
 
-  const recalc = (f: Fardo): Fardo => ({
-    ...f,
-    alturaTotalCm: +f.itens.reduce((a, it) => a + (it.alturaUnitariaCm > 0 ? it.alturaTotalCm : 0), 0).toFixed(2),
-    quantidadeTotal: f.itens.reduce((a, it) => a + it.quantidade, 0),
-  });
+  const recalc = (f: Fardo): Fardo => {
+    const itens = sortItensByEndereco(f.itens);
+    return {
+      ...f,
+      itens,
+      alturaTotalCm: +itens.reduce((a, it) => a + (it.alturaUnitariaCm > 0 ? it.alturaTotalCm : 0), 0).toFixed(2),
+      quantidadeTotal: itens.reduce((a, it) => a + it.quantidade, 0),
+    };
+  };
 
   const addEmptyFardo = () => {
     const next = [...fardos, { numero: fardos.length + 1, itens: [], alturaTotalCm: 0, quantidadeTotal: 0 }];
