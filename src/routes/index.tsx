@@ -606,6 +606,9 @@ function PreviewStep({
           <Button variant="outline" onClick={addEmptyFardo}>
             <Package className="mr-2 h-4 w-4" /> Novo FARDO
           </Button>
+          <Button variant="outline" onClick={addClosedFardo}>
+            <PackageCheck className="mr-2 h-4 w-4" /> Fardo Fechado
+          </Button>
           <Button onClick={onDownload}>
             <Download className="mr-2 h-4 w-4" /> Gerar PDF
           </Button>
