@@ -515,6 +515,10 @@ function PreviewStep({
 
     const item = src.itens[srcIdx];
     if (!item) return;
+    if (dest.fechado && dest.itens.length >= 1 && dest.itens[0].codigo !== item.codigo) {
+      toast.error("FARDO fechado permite apenas 1 item.");
+      return;
+    }
     const itemH = item.alturaUnitariaCm > 0 ? item.alturaTotalCm : 0;
     const limit = maxFor(dest, item);
     if (dest.alturaTotalCm + itemH > limit + 0.01) {
