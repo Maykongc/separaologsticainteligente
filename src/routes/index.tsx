@@ -662,7 +662,10 @@ function PreviewStep({
                 {i === fardos.length - 1 && (
                   <Badge variant="destructive" className="font-bold">FIM</Badge>
                 )}
-                {limit === Infinity && (
+                {f.fechado && (
+                  <Badge className="bg-primary/10 text-primary hover:bg-primary/10 text-xs">fechado · máx {FARDO_FECHADO_MAX_CM} cm</Badge>
+                )}
+                {!f.fechado && limit === Infinity && (
                   <Badge variant="outline" className="text-xs">sem MDF · sem limite</Badge>
                 )}
               </div>
