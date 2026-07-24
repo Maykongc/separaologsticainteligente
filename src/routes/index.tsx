@@ -46,6 +46,30 @@ const LABELS: Record<DetectedColumn, string> = {
   altura: "Altura",
 };
 
+function mergeFardoByCode(f: Fardo): Fardo {
+  const byCode = new Map<string, FardoItem>();
+  const out: FardoItem[] = [];
+  for (const it of f.itens) {
+    const key = (it.codigo ?? "").trim();
+    if (!key) { out.push({ ...it }); continue; }
+    const existing = byCode.get(key);
+    if (existing) {
+      existing.quantidade += it.quantidade;
+      existing.alturaTotalCm = +(existing.alturaTotalCm + it.alturaTotalCm).toFixed(2);
+    } else {
+      const copy = { ...it };
+      byCode.set(key, copy);
+      out.push(copy);
+    }
+  }
+  return {
+    ...f,
+    itens: out,
+    alturaTotalCm: +out.reduce((a, v) => a + (v.alturaUnitariaCm > 0 ? v.alturaTotalCm : 0), 0).toFixed(2),
+    quantidadeTotal: out.reduce((a, v) => a + v.quantidade, 0),
+  };
+}
+
 function Index() {
   const [step, setStep] = useState<Step>("upload");
   const [state, setState] = useState<ProcessState | null>(null);
