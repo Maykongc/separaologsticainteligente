@@ -664,6 +664,16 @@ function PreviewStep({
                 <span className="text-muted-foreground">{f.itens.length} itens</span>
                 <Button
                   variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-primary"
+                  onClick={() => unifyFardo(f.numero)}
+                  disabled={f.itens.length < 2}
+                  title="Unificar itens com o mesmo código"
+                >
+                  <Combine className="h-3.5 w-3.5" /> Unificar
+                </Button>
+                <Button
+                  variant="ghost"
                   size="icon"
                   className="h-7 w-7 text-muted-foreground hover:text-destructive"
                   onClick={() => deleteFardo(f.numero)}
