@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, Download, RotateCcw, Loader2, ArrowRight, Boxes, GripVertical, X, Scissors, Combine } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, PackageCheck, Download, RotateCcw, Loader2, ArrowRight, Boxes, GripVertical, X, Scissors, Combine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { parseFile } from "@/lib/sli/fileParser";
 import { detectColumns, detectFooter, type ColumnMap, type DetectedColumn, type FooterInfo } from "@/lib/sli/columnDetector";
-import { normalizeRows, buildFardos, FARDO_MAX_CM, type Fardo, type FardoItem } from "@/lib/sli/fardoBuilder";
+import { normalizeRows, buildFardos, FARDO_MAX_CM, FARDO_FECHADO_MAX_CM, type Fardo, type FardoItem } from "@/lib/sli/fardoBuilder";
 import { generatePdf } from "@/lib/sli/pdfGenerator";
 import { toast } from "sonner";
 
@@ -456,8 +456,10 @@ function PreviewStep({
   const isMDF = (produto: string) =>
     /\bmdf\b/i.test(produto) && !/\b(tira|tiras|peça|peca|peças|pecas|corte|cortes|sarrafo|sarrafos)\b/i.test(produto);
   const hasMDF = (f: Fardo) => f.itens.some((it) => isMDF(it.produto));
-  const maxFor = (f: Fardo, incoming?: { produto: string }) =>
-    hasMDF(f) || (incoming && isMDF(incoming.produto)) ? FARDO_MAX_CM : Infinity;
+  const maxFor = (f: Fardo, incoming?: { produto: string }) => {
+    if (f.fechado) return FARDO_FECHADO_MAX_CM;
+    return hasMDF(f) || (incoming && isMDF(incoming.produto)) ? FARDO_MAX_CM : Infinity;
+  };
 
   const recalc = (f: Fardo): Fardo => {
     const itens = sortItensByEndereco(f.itens);
@@ -473,6 +475,12 @@ function PreviewStep({
     const next = [...fardos, { numero: fardos.length + 1, itens: [], alturaTotalCm: 0, quantidadeTotal: 0 }];
     onUpdateFardos(next);
     toast.success(`FARDO ${next.length} criado.`);
+  };
+
+  const addClosedFardo = () => {
+    const next = [...fardos, { numero: fardos.length + 1, itens: [], alturaTotalCm: 0, quantidadeTotal: 0, fechado: true }];
+    onUpdateFardos(next);
+    toast.success(`FARDO fechado ${next.length} criado (máx. ${FARDO_FECHADO_MAX_CM} cm).`);
   };
 
   const deleteFardo = (numero: number) => {
@@ -598,6 +606,9 @@ function PreviewStep({
           <Button variant="outline" onClick={addEmptyFardo}>
             <Package className="mr-2 h-4 w-4" /> Novo FARDO
           </Button>
+          <Button variant="outline" onClick={addClosedFardo}>
+            <PackageCheck className="mr-2 h-4 w-4" /> Fardo Fechado
+          </Button>
           <Button onClick={onDownload}>
             <Download className="mr-2 h-4 w-4" /> Gerar PDF
           </Button>
@@ -651,7 +662,10 @@ function PreviewStep({
                 {i === fardos.length - 1 && (
                   <Badge variant="destructive" className="font-bold">FIM</Badge>
                 )}
-                {limit === Infinity && (
+                {f.fechado && (
+                  <Badge className="bg-primary/10 text-primary hover:bg-primary/10 text-xs">fechado · máx {FARDO_FECHADO_MAX_CM} cm</Badge>
+                )}
+                {!f.fechado && limit === Infinity && (
                   <Badge variant="outline" className="text-xs">sem MDF · sem limite</Badge>
                 )}
               </div>
