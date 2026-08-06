@@ -551,53 +551,8 @@ function PreviewStep({
     toast.success(`Item movido para FARDO ${destFardo}.`);
   };
 
-  const splitItem = (fardoNum: number, idx: number) => {
-    const f = fardos.find((x) => x.numero === fardoNum);
-    const it = f?.itens[idx];
-    if (!f || !it) return;
-    if (it.quantidade <= 1) {
-      toast.error("Quantidade insuficiente para dividir.");
-      return;
-    }
-    const suggested = String(Math.floor(it.quantidade / 2));
-    const input = window.prompt(
-      `Dividir ${it.quantidade} un de "${it.produto}"\nQuantas unidades separar em um novo item?`,
-      suggested,
-    );
-    if (input == null) return;
-    const n = Math.floor(Number(input));
-    if (!Number.isFinite(n) || n <= 0 || n >= it.quantidade) {
-      toast.error(`Informe um número entre 1 e ${it.quantidade - 1}.`);
-      return;
-    }
-    const unit = it.alturaUnitariaCm;
-    const partA: FardoItem = {
-      ...it,
-      quantidade: it.quantidade - n,
-      alturaTotalCm: unit > 0 ? +((it.quantidade - n) * unit).toFixed(2) : 0,
-    };
-    const partB: FardoItem = {
-      ...it,
-      quantidade: n,
-      alturaTotalCm: unit > 0 ? +(n * unit).toFixed(2) : 0,
-    };
-    const newFardo: Fardo = {
-      numero: fardos.length + 1,
-      itens: [partB],
-      alturaTotalCm: partB.alturaTotalCm,
-      quantidadeTotal: partB.quantidade,
-    };
-    const next = [
-      ...fardos.map((x) =>
-        x.numero === fardoNum
-          ? recalc({ ...x, itens: x.itens.map((v, i) => (i === idx ? partA : v)) })
-          : x,
-      ),
-      newFardo,
-    ].map((f, i) => ({ ...f, numero: i + 1 }));
-    onUpdateFardos(next);
-    toast.success(`Separado ${partB.quantidade} un em novo FARDO ${next.length} (restam ${partA.quantidade}).`);
-  };
+  // Regra: itens não podem ser fragmentados entre FARDOs.
+
 
   const unifyFardo = (fardoNum: number) => {
     const target = fardos.find((f) => f.numero === fardoNum);
