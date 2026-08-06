@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, PackageCheck, Download, RotateCcw, Loader2, ArrowRight, Boxes, GripVertical, X, Combine } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, PackageCheck, Download, RotateCcw, Loader2, ArrowRight, Boxes, GripVertical, X, Scissors, Combine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -529,7 +529,7 @@ function PreviewStep({
     );
     if (outroComMesmoCodigo) {
       toast.error(
-        `Código ${item.codigo} já está no FARDO ${outroComMesmoCodigo.numero}. Itens não podem ser fragmentados entre FARDOs.`,
+        `Código ${item.codigo} já está no FARDO ${outroComMesmoCodigo.numero}. Para separar quantidades use a tesoura.`,
       );
       return;
     }
@@ -551,7 +551,55 @@ function PreviewStep({
     toast.success(`Item movido para FARDO ${destFardo}.`);
   };
 
-  // Regra: itens não podem ser fragmentados entre FARDOs.
+  // Regra: itens só podem ser fragmentados pela tesoura (nunca arrastando).
+  const splitItem = (fardoNum: number, idx: number) => {
+    const f = fardos.find((x) => x.numero === fardoNum);
+    const it = f?.itens[idx];
+    if (!f || !it) return;
+    if (it.quantidade <= 1) {
+      toast.error("Quantidade insuficiente para dividir.");
+      return;
+    }
+    const suggested = String(Math.floor(it.quantidade / 2));
+    const input = window.prompt(
+      `Dividir ${it.quantidade} un de "${it.produto}"\nQuantas unidades separar em um novo FARDO?`,
+      suggested,
+    );
+    if (input == null) return;
+    const n = Math.floor(Number(input));
+    if (!Number.isFinite(n) || n <= 0 || n >= it.quantidade) {
+      toast.error(`Informe um número entre 1 e ${it.quantidade - 1}.`);
+      return;
+    }
+    const unit = it.alturaUnitariaCm;
+    const partA: FardoItem = {
+      ...it,
+      quantidade: it.quantidade - n,
+      alturaTotalCm: unit > 0 ? +((it.quantidade - n) * unit).toFixed(2) : 0,
+    };
+    const partB: FardoItem = {
+      ...it,
+      quantidade: n,
+      alturaTotalCm: unit > 0 ? +(n * unit).toFixed(2) : 0,
+    };
+    const newFardo: Fardo = {
+      numero: fardos.length + 1,
+      itens: [partB],
+      alturaTotalCm: partB.alturaTotalCm,
+      quantidadeTotal: partB.quantidade,
+    };
+    const next = [
+      ...fardos.map((x) =>
+        x.numero === fardoNum
+          ? recalc({ ...x, itens: x.itens.map((v, i) => (i === idx ? partA : v)) })
+          : x,
+      ),
+      newFardo,
+    ].map((x, i) => ({ ...x, numero: i + 1 }));
+    onUpdateFardos(next);
+    toast.success(`Separado ${partB.quantidade} un em novo FARDO ${next.length} (restam ${partA.quantidade}).`);
+  };
+
 
 
   const unifyFardo = (fardoNum: number) => {
@@ -701,7 +749,19 @@ function PreviewStep({
                       <td className="px-2 py-1.5 font-mono">{it.codigo}</td>
                       <td className="px-2 py-1.5 text-right">{it.quantidade}</td>
                       <td className="px-2 py-1.5 text-right">{it.alturaUnitariaCm > 0 ? it.alturaTotalCm.toFixed(2) : "—"}</td>
-                      <td className="px-2 py-1.5 text-right" />
+                      <td className="px-2 py-1.5 text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-primary"
+                          onClick={(e) => { e.stopPropagation(); splitItem(f.numero, idx); }}
+                          disabled={it.quantidade <= 1}
+                          title="Dividir quantidade (tesoura)"
+                          aria-label="Dividir quantidade"
+                        >
+                          <Scissors className="h-3.5 w-3.5" />
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
