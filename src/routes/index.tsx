@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, PackageCheck, Download, RotateCcw, Loader2, ArrowRight, Boxes, GripVertical, X, Combine } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, PackageCheck, Download, RotateCcw, Loader2, ArrowRight, Boxes, GripVertical, X, Scissors, Combine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -529,7 +529,7 @@ function PreviewStep({
     );
     if (outroComMesmoCodigo) {
       toast.error(
-        `Código ${item.codigo} já está no FARDO ${outroComMesmoCodigo.numero}. Itens não podem ser fragmentados entre FARDOs.`,
+        `Código ${item.codigo} já está no FARDO ${outroComMesmoCodigo.numero}. Para separar quantidades use a tesoura.`,
       );
       return;
     }
