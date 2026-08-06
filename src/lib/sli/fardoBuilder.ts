@@ -60,7 +60,28 @@ export function normalizeRows(
     .filter((r) => r.produto || r.codigo);
 }
 
-export function buildFardos(rows: NormalizedRow[]): Fardo[] {
+/** Agrupa linhas com o mesmo código para que um código nunca fique em 2 fardos */
+function groupByCodigo(rows: NormalizedRow[]): NormalizedRow[] {
+  const map = new Map<string, NormalizedRow>();
+  const out: NormalizedRow[] = [];
+  for (const r of rows) {
+    const key = r.codigo.trim().toUpperCase();
+    if (!key) { out.push(r); continue; }
+    const prev = map.get(key);
+    if (prev) {
+      prev.quantidade += r.quantidade;
+      if (prev.alturaUnitariaCm <= 0) prev.alturaUnitariaCm = r.alturaUnitariaCm;
+    } else {
+      const copy = { ...r };
+      map.set(key, copy);
+      out.push(copy);
+    }
+  }
+  return out;
+}
+
+export function buildFardos(inputRows: NormalizedRow[]): Fardo[] {
+  const rows = groupByCodigo(inputRows);
   const fardos: Fardo[] = [];
   let current: Fardo = { numero: 1, itens: [], alturaTotalCm: 0, quantidadeTotal: 0 };
 
