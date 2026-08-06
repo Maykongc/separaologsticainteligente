@@ -749,7 +749,19 @@ function PreviewStep({
                       <td className="px-2 py-1.5 font-mono">{it.codigo}</td>
                       <td className="px-2 py-1.5 text-right">{it.quantidade}</td>
                       <td className="px-2 py-1.5 text-right">{it.alturaUnitariaCm > 0 ? it.alturaTotalCm.toFixed(2) : "—"}</td>
-                      <td className="px-2 py-1.5 text-right" />
+                      <td className="px-2 py-1.5 text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-primary"
+                          onClick={(e) => { e.stopPropagation(); splitItem(f.numero, idx); }}
+                          disabled={it.quantidade <= 1}
+                          title="Dividir quantidade (tesoura)"
+                          aria-label="Dividir quantidade"
+                        >
+                          <Scissors className="h-3.5 w-3.5" />
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
