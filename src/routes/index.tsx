@@ -519,6 +519,20 @@ function PreviewStep({
       toast.error("FARDO fechado permite apenas 1 item.");
       return;
     }
+    // Regra: não é permitido separar itens de mesmo código arrastando.
+    // Se o código existir em outro FARDO (que não o destino), o movimento fragmentaria o código.
+    const outroComMesmoCodigo = fardos.find(
+      (f) =>
+        f.numero !== srcFardo &&
+        f.numero !== destFardo &&
+        f.itens.some((i) => i.codigo === item.codigo),
+    );
+    if (outroComMesmoCodigo) {
+      toast.error(
+        `Código ${item.codigo} já está no FARDO ${outroComMesmoCodigo.numero}. Para separar quantidades use a tesoura.`,
+      );
+      return;
+    }
     const itemH = item.alturaUnitariaCm > 0 ? item.alturaTotalCm : 0;
     const limit = maxFor(dest, item);
     if (dest.alturaTotalCm + itemH > limit + 0.01) {
