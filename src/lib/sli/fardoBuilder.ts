@@ -96,49 +96,22 @@ export function buildFardos(inputRows: NormalizedRow[]): Fardo[] {
   };
 
   for (const row of rows) {
-    let remaining = row.quantidade;
     const unitH = row.alturaUnitariaCm;
+    const total = unitH > 0 ? +(row.quantidade * unitH).toFixed(2) : 0;
 
-    if (unitH <= 0) {
-      // No height info — keep together in current fardo
-      current.itens.push({
-        ...row,
-        alturaTotalCm: 0,
-        quantidade: remaining,
-      });
-      current.quantidadeTotal += remaining;
-      continue;
-    }
-
-    if (unitH > FARDO_MAX_CM) {
-      // single item exceeds limit — own fardo
-      if (current.itens.length) pushCurrent();
-      current.itens.push({ ...row, quantidade: 1, alturaTotalCm: unitH });
-      current.alturaTotalCm = unitH;
-      current.quantidadeTotal = 1;
+    // Um código nunca é dividido entre fardos: se não couber no fardo atual,
+    // abre-se um novo fardo (mesmo que o item sozinho ultrapasse o limite).
+    if (current.itens.length && total > 0 && current.alturaTotalCm + total > FARDO_MAX_CM + 0.01) {
       pushCurrent();
-      remaining -= 1;
     }
 
-    while (remaining > 0) {
-      const livre = FARDO_MAX_CM - current.alturaTotalCm;
-      const cabe = Math.floor(livre / unitH);
-      if (cabe <= 0) {
-        pushCurrent();
-        continue;
-      }
-      const usar = Math.min(cabe, remaining);
-      current.itens.push({
-        ...row,
-        quantidade: usar,
-        alturaTotalCm: +(usar * unitH).toFixed(2),
-      });
-      current.alturaTotalCm = +(current.alturaTotalCm + usar * unitH).toFixed(2);
-      current.quantidadeTotal += usar;
-      remaining -= usar;
-      if (current.alturaTotalCm >= FARDO_MAX_CM - 0.01) pushCurrent();
-    }
+    current.itens.push({ ...row, alturaTotalCm: total });
+    current.alturaTotalCm = +(current.alturaTotalCm + total).toFixed(2);
+    current.quantidadeTotal += row.quantidade;
+
+    if (current.alturaTotalCm >= FARDO_MAX_CM - 0.01) pushCurrent();
   }
+
 
   if (current.itens.length) fardos.push(current);
   return fardos;
