@@ -487,8 +487,10 @@ function PreviewStep({
     const target = fardos.find((f) => f.numero === numero);
     if (!target) return;
     if (target.itens.length > 0) {
-      toast.error("Remova ou mova os itens antes de excluir o FARDO.");
-      return;
+      const ok = window.confirm(
+        `FARDO ${numero} possui ${target.itens.length} item(ns). Excluir mesmo assim? Os itens serão removidos.`,
+      );
+      if (!ok) return;
     }
     const next = fardos.filter((f) => f.numero !== numero).map((f, i) => ({ ...f, numero: i + 1 }));
     onUpdateFardos(next);
