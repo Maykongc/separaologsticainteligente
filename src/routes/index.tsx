@@ -487,8 +487,10 @@ function PreviewStep({
     const target = fardos.find((f) => f.numero === numero);
     if (!target) return;
     if (target.itens.length > 0) {
-      toast.error("Remova ou mova os itens antes de excluir o FARDO.");
-      return;
+      const ok = window.confirm(
+        `FARDO ${numero} possui ${target.itens.length} item(ns). Excluir mesmo assim? Os itens serão removidos.`,
+      );
+      if (!ok) return;
     }
     const next = fardos.filter((f) => f.numero !== numero).map((f, i) => ({ ...f, numero: i + 1 }));
     onUpdateFardos(next);
@@ -519,20 +521,8 @@ function PreviewStep({
       toast.error("FARDO fechado permite apenas 1 item.");
       return;
     }
-    // Regra: não é permitido separar itens de mesmo código arrastando.
-    // Se o código existir em outro FARDO (que não o destino), o movimento fragmentaria o código.
-    const outroComMesmoCodigo = fardos.find(
-      (f) =>
-        f.numero !== srcFardo &&
-        f.numero !== destFardo &&
-        f.itens.some((i) => i.codigo === item.codigo),
-    );
-    if (outroComMesmoCodigo) {
-      toast.error(
-        `Código ${item.codigo} já está no FARDO ${outroComMesmoCodigo.numero}. Para separar quantidades use a tesoura.`,
-      );
-      return;
-    }
+    // Mover o item inteiro nunca fragmenta o código (a fragmentação só ocorre pela tesoura),
+    // portanto o movimento é sempre permitido; ao chegar no destino, códigos iguais são unificados.
     const itemH = item.alturaUnitariaCm > 0 ? item.alturaTotalCm : 0;
     const limit = maxFor(dest, item);
     if (dest.alturaTotalCm + itemH > limit + 0.01) {
