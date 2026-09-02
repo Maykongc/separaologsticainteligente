@@ -25,10 +25,23 @@ export function generatePdf(fardos: Fardo[], footer: FooterInfo, fileName: strin
     doc.setFontSize(20);
     doc.text(`FARDO ${fardo.numero}`, 10, 14);
 
+    const fimBadgeW = isLast ? 34 : 0;
+    const fimBadgeGap = isLast ? 8 : 0;
+
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
     const headerRight = `ALTURA TOTAL: ${fardo.alturaTotalCm.toFixed(1)} cm     QUANTIDADE TOTAL: ${fardo.quantidadeTotal}`;
-    doc.text(headerRight, pageW - 10, 14, { align: "right" });
+    doc.text(headerRight, pageW - 10 - fimBadgeW - fimBadgeGap, 14, { align: "right" });
+
+    if (isLast) {
+      // FIM badge in header so it never overlaps footer information
+      doc.setFillColor(220, 38, 38);
+      doc.roundedRect(pageW - 44, 4, 34, 14, 3, 3, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.setTextColor(255, 255, 255);
+      doc.text("FIM", pageW - 27, 14.5, { align: "center" });
+    }
 
     // Table
     autoTable(doc, {
@@ -76,14 +89,6 @@ export function generatePdf(fardos: Fardo[], footer: FooterInfo, fileName: strin
       pageH - 10,
       { align: "right" },
     );
-
-    if (isLast) {
-      // Big FIM marker centered
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(60);
-      doc.setTextColor(220, 38, 38);
-      doc.text("FIM", pageW / 2, pageH - 30, { align: "center" });
-    }
   });
 
   const cleanName = fileName.replace(/\.[^.]+$/, "");
