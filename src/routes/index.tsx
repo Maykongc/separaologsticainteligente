@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, PackageCheck, Download, RotateCcw, Loader2, ArrowRight, Boxes, GripVertical, X, Scissors, Combine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -75,6 +75,16 @@ function mergeFardoByCode(f: Fardo): Fardo {
     alturaTotalCm: +sorted.reduce((a, v) => a + (v.alturaUnitariaCm > 0 ? v.alturaTotalCm : 0), 0).toFixed(2),
     quantidadeTotal: sorted.reduce((a, v) => a + v.quantidade, 0),
   };
+}
+
+/**
+ * Fonte única de verdade da lista de FARDOs: renumera em sequência,
+ * unifica códigos repetidos e recalcula altura/quantidade/contagem
+ * a partir dos itens reais. Evita qualquer divergência entre o
+ * cabeçalho do FARDO e as linhas exibidas.
+ */
+function normalizeFardos(fs: Fardo[]): Fardo[] {
+  return fs.map((f, i) => ({ ...mergeFardoByCode(f), numero: i + 1 }));
 }
 
 function Index() {
@@ -157,8 +167,7 @@ function Index() {
         }
       }
       // Unifica itens com mesmo código dentro de cada FARDO
-      const merged = fardos.map(mergeFardoByCode);
-      setState({ ...state, fardos: merged });
+      setState({ ...state, fardos: normalizeFardos(fardos) });
       setStep("preview");
     } finally {
       setBusy(false);
@@ -218,7 +227,7 @@ function Index() {
             state={{ ...state, fardos: state.fardos }}
             onBack={() => setStep("validation")}
             onDownload={download}
-            onUpdateFardos={(fs) => setState({ ...state, fardos: fs })}
+            onUpdateFardos={(fs) => setState({ ...state, fardos: normalizeFardos(fs) })}
           />
         )}
 
@@ -447,7 +456,9 @@ function PreviewStep({
   onDownload: () => void;
   onUpdateFardos: (fs: Fardo[]) => void;
 }) {
-  const fardos = state.fardos;
+  // Sempre exibe a lista normalizada (códigos unificados, totais e
+  // contagem recalculados) para que cabeçalho e linhas nunca divirjam.
+  const fardos = useMemo(() => normalizeFardos(state.fardos), [state.fardos]);
   const totalQtd = fardos.reduce((a, f) => a + f.quantidadeTotal, 0);
   const avgH = fardos.reduce((a, f) => a + f.alturaTotalCm, 0) / fardos.length;
   const [dragOver, setDragOver] = useState<number | null>(null);
