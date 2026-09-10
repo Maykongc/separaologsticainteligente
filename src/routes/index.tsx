@@ -77,6 +77,16 @@ function mergeFardoByCode(f: Fardo): Fardo {
   };
 }
 
+/**
+ * Fonte única de verdade da lista de FARDOs: renumera em sequência,
+ * unifica códigos repetidos e recalcula altura/quantidade/contagem
+ * a partir dos itens reais. Evita qualquer divergência entre o
+ * cabeçalho do FARDO e as linhas exibidas.
+ */
+function normalizeFardos(fs: Fardo[]): Fardo[] {
+  return fs.map((f, i) => ({ ...mergeFardoByCode(f), numero: i + 1 }));
+}
+
 function Index() {
   const [step, setStep] = useState<Step>("upload");
   const [state, setState] = useState<ProcessState | null>(null);
