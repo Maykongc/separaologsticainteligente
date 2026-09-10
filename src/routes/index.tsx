@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { parseFile } from "@/lib/sli/fileParser";
 import { detectColumns, detectFooter, type ColumnMap, type DetectedColumn, type FooterInfo } from "@/lib/sli/columnDetector";
-import { normalizeRows, buildFardos, FARDO_MAX_CM, FARDO_FECHADO_MAX_CM, type Fardo, type FardoItem } from "@/lib/sli/fardoBuilder";
+import { normalizeRows, buildFardos, FARDO_MAX_CM, FARDO_MAX_ITENS, FARDO_FECHADO_MAX_CM, type Fardo, type FardoItem } from "@/lib/sli/fardoBuilder";
 import { generatePdf } from "@/lib/sli/pdfGenerator";
 import { toast } from "sonner";
 
@@ -17,6 +17,8 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "Automatize a leitura de planilhas operacionais e gere PDFs de separação organizados por FARDO." },
       { property: "og:title", content: "SLI — Separação Logística Inteligente" },
       { property: "og:description", content: "Upload de XLSX/CSV, geração automática de FARDOs e PDF pronto para impressão." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Index,
@@ -334,7 +336,7 @@ function UploadStep({
 
       <div className="grid gap-4 md:grid-cols-3">
         <FeatureItem icon={<FileSpreadsheet />} title="Detecção automática" desc="Reconhece variações de cabeçalho." />
-        <FeatureItem icon={<Package />} title="FARDOs de até 60 cm" desc="Agrupamento e divisão automática." />
+        <FeatureItem icon={<Package />} title={`Até ${FARDO_MAX_ITENS} itens e ${FARDO_MAX_CM} cm`} desc="Agrupamento automático por FARDO." />
         <FeatureItem icon={<Download />} title="PDF operacional" desc="Layout paisagem, pronto para imprimir." />
       </div>
     </div>
