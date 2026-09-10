@@ -456,7 +456,9 @@ function PreviewStep({
   onDownload: () => void;
   onUpdateFardos: (fs: Fardo[]) => void;
 }) {
-  const fardos = state.fardos;
+  // Sempre exibe a lista normalizada (códigos unificados, totais e
+  // contagem recalculados) para que cabeçalho e linhas nunca divirjam.
+  const fardos = useMemo(() => normalizeFardos(state.fardos), [state.fardos]);
   const totalQtd = fardos.reduce((a, f) => a + f.quantidadeTotal, 0);
   const avgH = fardos.reduce((a, f) => a + f.alturaTotalCm, 0) / fardos.length;
   const [dragOver, setDragOver] = useState<number | null>(null);
