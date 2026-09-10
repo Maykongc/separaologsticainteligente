@@ -227,7 +227,7 @@ function Index() {
             state={{ ...state, fardos: state.fardos }}
             onBack={() => setStep("validation")}
             onDownload={download}
-            onUpdateFardos={(fs) => setState({ ...state, fardos: fs })}
+            onUpdateFardos={(fs) => setState({ ...state, fardos: normalizeFardos(fs) })}
           />
         )}
 
