@@ -167,8 +167,7 @@ function Index() {
         }
       }
       // Unifica itens com mesmo código dentro de cada FARDO
-      const merged = fardos.map(mergeFardoByCode);
-      setState({ ...state, fardos: merged });
+      setState({ ...state, fardos: normalizeFardos(fardos) });
       setStep("preview");
     } finally {
       setBusy(false);
