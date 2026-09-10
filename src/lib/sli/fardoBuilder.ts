@@ -2,6 +2,7 @@ import type { ColumnMap } from "./columnDetector";
 import { extractHeightCmFromText, normalizeHeightCm, parseNumber } from "./columnDetector";
 
 export const FARDO_MAX_CM = 60;
+export const FARDO_MAX_ITENS = 10;
 
 export interface FardoItem {
   produto: string;
@@ -100,8 +101,11 @@ export function buildFardos(inputRows: NormalizedRow[]): Fardo[] {
     const total = unitH > 0 ? +(row.quantidade * unitH).toFixed(2) : 0;
 
     // Um código nunca é dividido entre fardos: se não couber no fardo atual,
-    // abre-se um novo fardo (mesmo que o item sozinho ultrapasse o limite).
-    if (current.itens.length && total > 0 && current.alturaTotalCm + total > FARDO_MAX_CM + 0.01) {
+    // ou o fardo já tiver 10 itens, abre-se um novo fardo. Um item sozinho
+    // permanece inteiro mesmo quando ultrapassa o limite de altura.
+    const exceedsHeight = total > 0 && current.alturaTotalCm + total > FARDO_MAX_CM + 0.01;
+    const exceedsItemCount = current.itens.length >= FARDO_MAX_ITENS;
+    if (current.itens.length && (exceedsHeight || exceedsItemCount)) {
       pushCurrent();
     }
 
