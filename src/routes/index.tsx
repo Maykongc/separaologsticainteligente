@@ -105,7 +105,11 @@ function Index() {
         return;
       }
       const { map, missing, unknown } = detectColumns(parsed.sheet1.headers);
-      const footer = parsed.sheet2 ? detectFooter(parsed.sheet2.rows) : {};
+      // A base original traz os dados operacionais junto aos itens na primeira
+      // aba; planilhas já formatadas continuam podendo fornecê-los na segunda.
+      const footer = parsed.sheet2
+        ? { ...detectFooter(parsed.sheet1.rows), ...detectFooter(parsed.sheet2.rows) }
+        : detectFooter(parsed.sheet1.rows);
       setState({
         file,
         headers: parsed.sheet1.headers,

@@ -18,6 +18,22 @@ export async function parseFile(file: File): Promise<ParsedFile> {
 }
 
 function sheetToData(sheet: XLSX.WorkSheet) {
+  // Alguns relatórios exportados informam incorretamente !ref="A1", apesar de
+  // possuírem várias linhas e colunas. Recalcula a área real pelas células.
+  const cellAddresses = Object.keys(sheet).filter((key) => !key.startsWith("!"));
+  if (cellAddresses.length) {
+    const range = cellAddresses.reduce(
+      (acc, address) => {
+        const cell = XLSX.utils.decode_cell(address);
+        return {
+          s: { r: Math.min(acc.s.r, cell.r), c: Math.min(acc.s.c, cell.c) },
+          e: { r: Math.max(acc.e.r, cell.r), c: Math.max(acc.e.c, cell.c) },
+        };
+      },
+      { s: { r: Infinity, c: Infinity }, e: { r: 0, c: 0 } },
+    );
+    sheet["!ref"] = XLSX.utils.encode_range(range);
+  }
   const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
     defval: "",
     raw: true,
