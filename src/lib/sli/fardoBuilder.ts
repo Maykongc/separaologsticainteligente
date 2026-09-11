@@ -31,6 +31,26 @@ interface NormalizedRow {
   alturaUnitariaCm: number;
 }
 
+/**
+ * Regras operacionais de FARDO fechado automático:
+ * - MDF 15 mm com 40 a 42 unidades
+ * - MDF 18 mm com 30 a 36 unidades
+ */
+export function shouldAutoCloseFardo(
+  produto: string,
+  alturaUnitariaCm: number,
+  quantidade: number,
+): boolean {
+  const isMdf = /\bmdf\b/i.test(produto)
+    && !/\b(tira|tiras|peça|peca|peças|pecas|corte|cortes|sarrafo|sarrafos)\b/i.test(produto);
+  if (!isMdf) return false;
+
+  const is15mm = Math.abs(alturaUnitariaCm - 1.5) < 0.01;
+  const is18mm = Math.abs(alturaUnitariaCm - 1.8) < 0.01;
+  return (is15mm && quantidade >= 40 && quantidade <= 42)
+    || (is18mm && quantidade >= 30 && quantidade <= 36);
+}
+
 export function normalizeRows(
   rows: Record<string, unknown>[],
   map: ColumnMap,
@@ -99,6 +119,25 @@ export function buildFardos(inputRows: NormalizedRow[]): Fardo[] {
   for (const row of rows) {
     const unitH = row.alturaUnitariaCm;
     const total = unitH > 0 ? +(row.quantidade * unitH).toFixed(2) : 0;
+
+    // Combinações fechadas são sempre isoladas em um FARDO próprio.
+    if (shouldAutoCloseFardo(row.produto, unitH, row.quantidade)) {
+      pushCurrent();
+      fardos.push({
+        numero: fardos.length + 1,
+        itens: [{ ...row, alturaTotalCm: total }],
+        alturaTotalCm: total,
+        quantidadeTotal: row.quantidade,
+        fechado: true,
+      });
+      current = {
+        numero: fardos.length + 1,
+        itens: [],
+        alturaTotalCm: 0,
+        quantidadeTotal: 0,
+      };
+      continue;
+    }
 
     // Um código nunca é dividido entre fardos: se não couber no fardo atual,
     // ou o fardo já tiver 10 itens, abre-se um novo fardo. Um item sozinho

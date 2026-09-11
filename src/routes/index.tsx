@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { parseFile } from "@/lib/sli/fileParser";
 import { detectColumns, detectFooter, type ColumnMap, type DetectedColumn, type FooterInfo } from "@/lib/sli/columnDetector";
-import { normalizeRows, buildFardos, FARDO_MAX_CM, FARDO_MAX_ITENS, FARDO_FECHADO_MAX_CM, type Fardo, type FardoItem } from "@/lib/sli/fardoBuilder";
+import { normalizeRows, buildFardos, shouldAutoCloseFardo, FARDO_MAX_CM, FARDO_MAX_ITENS, FARDO_FECHADO_MAX_CM, type Fardo, type FardoItem } from "@/lib/sli/fardoBuilder";
 import { generatePdf } from "@/lib/sli/pdfGenerator";
 import { toast } from "sonner";
 
@@ -165,6 +165,7 @@ function Index() {
             }],
             alturaTotalCm: altTotal,
             quantidadeTotal: qtd,
+             fechado: shouldAutoCloseFardo(row.produto, row.alturaUnitariaCm, qtd) || undefined,
           });
         }
       }
