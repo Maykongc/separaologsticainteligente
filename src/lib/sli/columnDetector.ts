@@ -44,7 +44,12 @@ export function detectColumns(headers: string[]): {
     // then contains
     if (!found)
       found = normalized.find(
-        (h) => !used.has(h.raw) && candidates.some((c) => h.norm.includes(c) || c.includes(h.norm)),
+        (h) => !used.has(h.raw) && candidates.some((c) => {
+          // Evita falsos positivos de abreviações muito curtas, como "id"
+          // em "Pedido Origem" ou "h" em "Caminhão".
+          if (c.length < 3 || h.norm.length < 3) return false;
+          return h.norm.includes(c) || c.includes(h.norm);
+        }),
       );
     if (found) {
       map[key] = found.raw;
