@@ -419,15 +419,6 @@ function ValidationStep({
   );
 }
 
-function FooterLine({ label, value }: { label: string; value?: string }) {
-  return (
-    <div className="flex justify-between rounded bg-muted px-3 py-1.5">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium">{value ?? "—"}</span>
-    </div>
-  );
-}
-
 function PreviewStep({
   state,
   onBack,
