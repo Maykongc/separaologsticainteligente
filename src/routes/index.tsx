@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Package, PackageCheck, Download, RotateCcw, Loader2, ArrowRight, Boxes, GripVertical, X, Scissors, Combine } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, Package, PackageCheck, Download, RotateCcw, Loader2, ArrowRight, Boxes, GripVertical, X, Scissors, Combine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +32,6 @@ interface ProcessState {
   rowCount: number;
   map: ColumnMap;
   missing: DetectedColumn[];
-  unknown: string[];
   footer: FooterInfo;
   rawRows: Record<string, unknown>[];
   extraRows: Record<string, unknown>[];
@@ -104,7 +103,7 @@ function Index() {
         toast.error("A primeira aba está vazia.");
         return;
       }
-      const { map, missing, unknown } = detectColumns(parsed.sheet1.headers);
+      const { map, missing } = detectColumns(parsed.sheet1.headers);
       // A base original traz os dados operacionais junto aos itens na primeira
       // aba; planilhas já formatadas continuam podendo fornecê-los na segunda.
       const footer = parsed.sheet2
@@ -116,7 +115,6 @@ function Index() {
         rowCount: parsed.sheet1.rows.length,
         map,
         missing,
-        unknown,
         footer,
         rawRows: parsed.sheet1.rows,
         extraRows: parsed.sheet3?.rows ?? [],
@@ -379,7 +377,7 @@ function ValidationStep({
         <p className="text-sm text-muted-foreground">{state.file.name} · {state.rowCount} registros</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="max-w-2xl">
         <Card className="bg-surface p-5">
           <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
             <CheckCircle2 className="h-4 w-4 text-success" /> Colunas identificadas
@@ -398,28 +396,6 @@ function ValidationStep({
               </li>
             ))}
           </ul>
-        </Card>
-
-        <Card className="bg-surface p-5">
-          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-            <AlertTriangle className="h-4 w-4 text-warning" /> Outras colunas
-          </h3>
-          {state.unknown.length ? (
-            <div className="flex flex-wrap gap-2">
-              {state.unknown.map((c) => (
-                <Badge key={c} variant="outline" className="font-mono text-xs">{c}</Badge>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Todas as colunas foram mapeadas.</p>
-          )}
-
-          <h3 className="mt-5 mb-2 text-sm font-semibold">Rodapé operacional</h3>
-          <div className="space-y-1 text-sm">
-            <FooterLine label="Rota" value={state.footer.rota} />
-            <FooterLine label="Pedido Origem" value={state.footer.pedidoOrigem} />
-            <FooterLine label="Separação" value={state.footer.separacao} />
-          </div>
         </Card>
       </div>
 
