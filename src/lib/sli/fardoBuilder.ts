@@ -33,7 +33,7 @@ interface NormalizedRow {
 
 /**
  * Regras operacionais de FARDO fechado automático:
- * - MDF 15 mm com 40 a 42 unidades
+ * - MDF 15 mm com 40 a 45 unidades
  * - MDF 18 mm com 30 a 36 unidades
  */
 export function shouldAutoCloseFardo(
@@ -47,8 +47,17 @@ export function shouldAutoCloseFardo(
 
   const is15mm = Math.abs(alturaUnitariaCm - 1.5) < 0.01;
   const is18mm = Math.abs(alturaUnitariaCm - 1.8) < 0.01;
-  return (is15mm && quantidade >= 40 && quantidade <= 42)
+  return (is15mm && quantidade >= 40 && quantidade <= 45)
     || (is18mm && quantidade >= 30 && quantidade <= 36);
+}
+
+function isMdfProduto(produto: string): boolean {
+  return /\bmdf\b/i.test(produto)
+    && !/\b(tira|tiras|peça|peca|peças|pecas|corte|cortes|sarrafo|sarrafos)\b/i.test(produto);
+}
+
+function compareEndereco(a: NormalizedRow, b: NormalizedRow): number {
+  return a.endereco.localeCompare(b.endereco, "pt-BR", { numeric: true, sensitivity: "base" });
 }
 
 export function normalizeRows(
@@ -102,7 +111,8 @@ function groupByCodigo(rows: NormalizedRow[]): NormalizedRow[] {
 }
 
 export function buildFardos(inputRows: NormalizedRow[]): Fardo[] {
-  const rows = groupByCodigo(inputRows);
+  // A sequência de separação é definida antes da montagem dos FARDOs.
+  const rows = groupByCodigo(inputRows).sort(compareEndereco);
   const fardos: Fardo[] = [];
   let current: Fardo = { numero: 1, itens: [], alturaTotalCm: 0, quantidadeTotal: 0 };
 
@@ -139,10 +149,13 @@ export function buildFardos(inputRows: NormalizedRow[]): Fardo[] {
       continue;
     }
 
-    // Um código nunca é dividido entre fardos: se não couber no fardo atual,
-    // ou o fardo já tiver 10 itens, abre-se um novo fardo. Um item sozinho
-    // permanece inteiro mesmo quando ultrapassa o limite de altura.
-    const exceedsHeight = total > 0 && current.alturaTotalCm + total > FARDO_MAX_CM + 0.01;
+    // O limite de 60 cm vale quando o FARDO contém MDF. Materiais que não são
+    // MDF podem ser agrupados sem limite de altura. Um código nunca é dividido.
+    const currentHasMdf = current.itens.some((item) => isMdfProduto(item.produto));
+    const nextHasMdf = currentHasMdf || isMdfProduto(row.produto);
+    const exceedsHeight = nextHasMdf
+      && total > 0
+      && current.alturaTotalCm + total > FARDO_MAX_CM + 0.01;
     const exceedsItemCount = current.itens.length >= FARDO_MAX_ITENS;
     if (current.itens.length && (exceedsHeight || exceedsItemCount)) {
       pushCurrent();
@@ -152,7 +165,7 @@ export function buildFardos(inputRows: NormalizedRow[]): Fardo[] {
     current.alturaTotalCm = +(current.alturaTotalCm + total).toFixed(2);
     current.quantidadeTotal += row.quantidade;
 
-    if (current.alturaTotalCm >= FARDO_MAX_CM - 0.01) pushCurrent();
+    if (nextHasMdf && current.alturaTotalCm >= FARDO_MAX_CM - 0.01) pushCurrent();
   }
 
 
