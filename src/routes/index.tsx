@@ -232,7 +232,9 @@ function Index() {
             state={{ ...state, fardos: state.fardos }}
             onBack={() => setStep("validation")}
             onDownload={download}
-            onUpdateFardos={(fs) => setState({ ...state, fardos: normalizeFardos(fs) })}
+            onUpdateFardos={(fs) => setState((current) => (
+              current ? { ...current, fardos: normalizeFardos(fs) } : current
+            ))}
           />
         )}
 
@@ -620,11 +622,13 @@ function PreviewStep({
 
       <div className="space-y-3">
         {fardos.map((f, i) => {
+          const displayedItems = f.itens;
+          const itemCount = displayedItems.length;
           const limit = maxFor(f);
           const over = limit !== Infinity && f.alturaTotalCm > limit + 0.01;
           return (
           <Card
-            key={f.numero}
+            key={`${f.numero}:${itemCount}:${displayedItems.map((item) => `${item.codigo}-${item.quantidade}`).join("|")}`}
             onDragOver={(e) => { e.preventDefault(); setDragOver(f.numero); }}
             onDragLeave={() => setDragOver((v) => (v === f.numero ? null : v))}
             onDrop={(e) => {
@@ -671,7 +675,7 @@ function PreviewStep({
                 </span>
 
                 <span><strong>{f.quantidadeTotal}</strong> un</span>
-                <span className="text-muted-foreground">{f.itens.length} itens</span>
+                <span className="text-muted-foreground">{itemCount} {itemCount === 1 ? "item" : "itens"}</span>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -708,7 +712,7 @@ function PreviewStep({
                   </tr>
                 </thead>
                 <tbody>
-                  {f.itens.map((it, idx) => (
+                  {displayedItems.map((it, idx) => (
                     <tr
                       key={idx}
                       draggable
