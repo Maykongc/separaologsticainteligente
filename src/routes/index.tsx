@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Upload, FileSpreadsheet, CheckCircle2, Package, PackageCheck, Download, RotateCcw, Loader2, ArrowRight, Boxes, GripVertical, X, Scissors, Combine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -432,9 +432,9 @@ function PreviewStep({
   onDownload: () => void;
   onUpdateFardos: (fs: Fardo[]) => void;
 }) {
-  // Sempre exibe a lista normalizada (códigos unificados, totais e
-  // contagem recalculados) para que cabeçalho e linhas nunca divirjam.
-  const fardos = useMemo(() => normalizeFardos(state.fardos), [state.fardos]);
+  // Recalcula em toda renderização para que movimentos sucessivos nunca
+  // reutilizem uma contagem anterior memorizada.
+  const fardos = normalizeFardos(state.fardos);
   const totalQtd = fardos.reduce((a, f) => a + f.quantidadeTotal, 0);
   const avgH = fardos.reduce((a, f) => a + f.alturaTotalCm, 0) / fardos.length;
   const [dragOver, setDragOver] = useState<number | null>(null);
@@ -622,13 +622,15 @@ function PreviewStep({
 
       <div className="space-y-3">
         {fardos.map((f, i) => {
-          const displayedItems = f.itens;
-          const itemCount = displayedItems.length;
+          const displayedItems = [...f.itens];
+          const itemCount = displayedItems.reduce((count) => count + 1, 0);
           const limit = maxFor(f);
           const over = limit !== Infinity && f.alturaTotalCm > limit + 0.01;
           return (
           <Card
             key={`${f.numero}:${itemCount}:${displayedItems.map((item) => `${item.codigo}-${item.quantidade}`).join("|")}`}
+            translate="no"
+            data-item-count={itemCount}
             onDragOver={(e) => { e.preventDefault(); setDragOver(f.numero); }}
             onDragLeave={() => setDragOver((v) => (v === f.numero ? null : v))}
             onDrop={(e) => {
@@ -643,7 +645,7 @@ function PreviewStep({
               const [sf, si] = data.split(":").map(Number);
               moveItem(sf, si, f.numero);
             }}
-            className={`bg-surface p-4 transition-colors ${dragOver === f.numero ? "ring-2 ring-primary" : ""}`}
+            className={`notranslate bg-surface p-4 transition-colors ${dragOver === f.numero ? "ring-2 ring-primary" : ""}`}
           >
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -670,12 +672,14 @@ function PreviewStep({
                 )}
               </div>
               <div className="flex items-center gap-4 text-sm">
-                <span className={over ? "text-destructive" : ""}>
+                <span className={`notranslate ${over ? "text-destructive" : ""}`} translate="no">
                   <strong>{f.alturaTotalCm.toFixed(1)}</strong> / {limit === Infinity ? "∞" : `${limit}`} cm
                 </span>
 
-                <span><strong>{f.quantidadeTotal}</strong> un</span>
-                <span className="text-muted-foreground">{itemCount} {itemCount === 1 ? "item" : "itens"}</span>
+                <span className="notranslate" translate="no"><strong>{f.quantidadeTotal}</strong> un</span>
+                <span className="notranslate text-muted-foreground" translate="no">
+                  <strong>{itemCount}</strong> {itemCount === 1 ? "item" : "itens"}
+                </span>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -714,7 +718,7 @@ function PreviewStep({
                 <tbody>
                   {displayedItems.map((it, idx) => (
                     <tr
-                      key={idx}
+                      key={`${it.codigo || "sem-codigo"}:${it.endereco}:${it.produto}`}
                       draggable
                       onDragStart={(e) => {
                         e.dataTransfer.setData("text/plain", `${f.numero}:${idx}`);
