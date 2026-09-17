@@ -181,6 +181,22 @@ function Index() {
 
   const download = () => {
     if (!state?.fardos) return;
+    // Validação obrigatória: todas as informações do rodapé devem existir e ser numéricas
+    const isNumeric = (v?: string) => v !== undefined && v.trim() !== "" && !isNaN(Number(v.replace(",", ".")));
+    const totalEnderecos = new Set(state.fardos.flatMap((f) => f.itens.map((it) => it.endereco))).size;
+    const totalQuantidade = state.fardos.reduce((a, f) => a + f.quantidadeTotal, 0);
+    const problemas: string[] = [];
+    if (!isNumeric(state.footer.rota)) problemas.push("ROTA");
+    if (!isNumeric(state.footer.pedidoOrigem)) problemas.push("PEDIDO ORIGEM");
+    if (!isNumeric(state.footer.separacao)) problemas.push("SEPARAÇÃO");
+    if (!(totalEnderecos > 0)) problemas.push("TOTAL DE ENDEREÇOS");
+    if (!(totalQuantidade > 0)) problemas.push("TOTAL QUANTIDADE");
+    if (problemas.length) {
+      toast.error(
+        `Não é possível gerar o PDF. Informações ausentes ou não numéricas: ${problemas.join(", ")}.`,
+      );
+      return;
+    }
     generatePdf(state.fardos, state.footer, state.file.name);
     toast.success("PDF gerado com sucesso.");
     setStep("result");
