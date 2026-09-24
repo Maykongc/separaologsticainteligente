@@ -3,7 +3,13 @@ import autoTable from "jspdf-autotable";
 import type { Fardo } from "./fardoBuilder";
 import type { FooterInfo } from "./columnDetector";
 
-export function generatePdf(fardos: Fardo[], footer: FooterInfo, fileName: string) {
+export function generatePdf(fardos: Fardo[], footer: FooterInfo, fileName: string, data?: string) {
+  const dataFmt = data
+    ? (() => {
+        const [y, m, d] = data.split("-");
+        return y && m && d ? `${d}/${m}/${y}` : data;
+      })()
+    : "";
   const totalEnderecosGeral = new Set(
     fardos.flatMap((f) => f.itens.map((it) => it.endereco)),
   ).size;

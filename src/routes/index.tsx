@@ -37,6 +37,7 @@ interface ProcessState {
   extraRows: Record<string, unknown>[];
   extraHeaders: string[];
   fardos?: Fardo[];
+  data?: string;
 }
 
 const LABELS: Record<DetectedColumn, string> = {
