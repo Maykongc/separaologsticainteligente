@@ -31,6 +31,14 @@ export function generatePdf(fardos: Fardo[], footer: FooterInfo, fileName: strin
     doc.setFontSize(20);
     doc.text(`FARDO ${fardo.numero}`, 10, 14);
 
+    if (dataFmt) {
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.text(`DATA: ${dataFmt}`, pageW / 2, 14, { align: "center" });
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(20);
+    }
+
     const fimBadgeW = isLast ? 34 : 0;
     const fimBadgeGap = isLast ? 8 : 0;
 
