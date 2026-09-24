@@ -619,7 +619,16 @@ function PreviewStep({
           <h2 className="text-2xl font-bold">Pré-visualização</h2>
           <p className="text-sm text-muted-foreground">Arraste itens entre FARDOs para reorganizar (limite {FARDO_MAX_CM} cm).</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-end gap-2">
+          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground notranslate" translate="no">
+            Data
+            <input
+              type="date"
+              value={state.data ?? ""}
+              onChange={(e) => onUpdateData(e.target.value)}
+              className="h-9 rounded-md border border-input bg-surface px-2 text-sm text-foreground"
+            />
+          </label>
           <Button variant="ghost" onClick={onBack}>Voltar</Button>
           <Button variant="outline" onClick={addEmptyFardo}>
             <Package className="mr-2 h-4 w-4" /> Novo FARDO
