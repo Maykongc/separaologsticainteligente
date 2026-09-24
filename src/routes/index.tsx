@@ -173,7 +173,7 @@ function Index() {
         }
       }
       // Unifica itens com mesmo código dentro de cada FARDO
-      setState({ ...state, fardos: normalizeFardos(fardos) });
+      setState({ ...state, fardos: normalizeFardos(fardos), data: state.data ?? new Date().toISOString().slice(0, 10) });
       setStep("preview");
     } finally {
       setBusy(false);
@@ -198,7 +198,7 @@ function Index() {
       );
       return;
     }
-    generatePdf(state.fardos, state.footer, state.file.name);
+    generatePdf(state.fardos, state.footer, state.file.name, state.data);
     toast.success("PDF gerado com sucesso.");
     setStep("result");
   };
@@ -252,6 +252,7 @@ function Index() {
             onUpdateFardos={(fs) => setState((current) => (
               current ? { ...current, fardos: normalizeFardos(fs) } : current
             ))}
+            onUpdateData={(d) => setState((current) => (current ? { ...current, data: d } : current))}
           />
         )}
 
@@ -443,11 +444,13 @@ function PreviewStep({
   onBack,
   onDownload,
   onUpdateFardos,
+  onUpdateData,
 }: {
   state: ProcessState & { fardos: Fardo[] };
   onBack: () => void;
   onDownload: () => void;
   onUpdateFardos: (fs: Fardo[]) => void;
+  onUpdateData: (d: string) => void;
 }) {
   // Recalcula em toda renderização para que movimentos sucessivos nunca
   // reutilizem uma contagem anterior memorizada.
