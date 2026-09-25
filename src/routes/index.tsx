@@ -183,9 +183,10 @@ function Index() {
   const download = () => {
     if (!state?.fardos) return;
     // Validação obrigatória: todas as informações do rodapé devem existir e ser numéricas
-    const isNumeric = (v?: string) => v !== undefined && v.trim() !== "" && !isNaN(Number(v.replace(",", ".")));
-    const totalEnderecos = new Set(state.fardos.flatMap((f) => f.itens.map((it) => it.endereco))).size;
-    const totalQuantidade = state.fardos.reduce((a, f) => a + f.quantidadeTotal, 0);
+    const isNumeric = (v?: unknown) => /\d/.test(String(v ?? ""));
+    const fardosValidos = state.fardos.filter((f) => f.itens.length > 0);
+    const totalEnderecos = new Set(fardosValidos.flatMap((f) => f.itens.map((it) => it.endereco))).size;
+    const totalQuantidade = fardosValidos.reduce((a, f) => a + f.quantidadeTotal, 0);
     const problemas: string[] = [];
     if (!isNumeric(state.footer.rota)) problemas.push("ROTA");
     if (!isNumeric(state.footer.pedidoOrigem)) problemas.push("PEDIDO ORIGEM");
@@ -198,7 +199,13 @@ function Index() {
       );
       return;
     }
-    generatePdf(state.fardos, state.footer, state.file.name, state.data);
+    try {
+      generatePdf(normalizeFardos(fardosValidos), state.footer, state.file.name, state.data);
+    } catch (err) {
+      console.error("Erro ao gerar PDF", err);
+      toast.error(`Erro ao gerar o PDF: ${err instanceof Error ? err.message : String(err)}`);
+      return;
+    }
     toast.success("PDF gerado com sucesso.");
     setStep("result");
   };
