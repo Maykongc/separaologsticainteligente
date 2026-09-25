@@ -5,7 +5,7 @@ export type DetectedColumn = "produto" | "endereco" | "codigo" | "quantidade" | 
 const SYNONYMS: Record<DetectedColumn, string[]> = {
   produto: ["produto", "descricao", "desc produto", "desc", "item", "mercadoria", "nome", "descricao produto"],
   endereco: ["endereco", "end", "endereco picking", "localizacao", "rua", "posicao", "picking", "local"],
-  codigo: ["codigo", "cod", "cod produto", "sku", "ean", "cod item", "codigo produto", "id produto", "id"],
+  codigo: ["codigo", "cod", "cod produto", "sku", "ean", "cod item", "codigo produto", "codigo do produto", "cod do produto", "id produto", "id"],
   quantidade: ["quantidade", "qtd", "qtde", "qty", "qt", "qtd separar", "qtd. separar", "quant"],
   altura: ["altura", "altura mm", "altura_mm", "alt", "altura cm", "height", "h", "altura embalagem"],
 };
