@@ -73,12 +73,25 @@ export function detectFooter(rows: Record<string, unknown>[]): FooterInfo {
   if (!rows.length) return {};
   const headers = Object.keys(rows[0]);
   const result: FooterInfo = {};
-  const find = (syns: string[]) => {
-    const h = headers.find((header) => syns.some((s) => normalize(header).includes(s)));
-    if (!h) return undefined;
+  // Colunas auxiliares que contêm a palavra-chave mas não são o dado em si
+  // (ex.: "Dt. Separação", "Grupo de Separação", "Tipo Pedido").
+  const IGNORE = /^(dt|data|grupo|tipo|cod|cd|qt|func|nome)\b/;
+  const firstValue = (h: string) => {
     for (const row of rows) {
       const val = row[h];
       if (val !== undefined && val !== null && String(val).trim() !== "") return String(val).trim();
+    }
+    return undefined;
+  };
+  const find = (syns: string[]) => {
+    const norm = headers.map((h) => ({ raw: h, norm: normalize(h) }));
+    const exact = norm.filter((h) => syns.includes(h.norm));
+    const partial = norm.filter(
+      (h) => !syns.includes(h.norm) && !IGNORE.test(h.norm) && syns.some((s) => h.norm.includes(s)),
+    );
+    for (const h of [...exact, ...partial]) {
+      const v = firstValue(h.raw);
+      if (v !== undefined) return v;
     }
     return undefined;
   };
