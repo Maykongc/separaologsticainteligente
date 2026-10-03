@@ -40,7 +40,7 @@ export function generatePdf(fardos: Fardo[], footer: FooterInfo, fileName: strin
     if (dataFmt) {
       doc.setFontSize(11);
       doc.setFont("helvetica", "normal");
-      doc.text(`DATA: ${dataFmt}`, pageW / 2, 14, { align: "center" });
+      doc.text(`DATA: ${dataFmt}`, 88, 14);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(20);
     }
