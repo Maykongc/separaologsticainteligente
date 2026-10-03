@@ -31,6 +31,12 @@ export function generatePdf(fardos: Fardo[], footer: FooterInfo, fileName: strin
     doc.setFontSize(20);
     doc.text(`FARDO ${fardo.numero}`, 10, 14);
 
+    if (footer.porta) {
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.text(`PORTA: ${footer.porta}`, 48, 14);
+    }
+
     if (dataFmt) {
       doc.setFontSize(11);
       doc.setFont("helvetica", "normal");

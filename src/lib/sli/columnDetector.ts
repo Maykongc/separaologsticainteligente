@@ -11,6 +11,7 @@ const SYNONYMS: Record<DetectedColumn, string[]> = {
 };
 
 const FOOTER_SYNONYMS = {
+  porta: ["porta", "numero porta", "n porta", "nr porta"],
   rota: ["rota", "route"],
   pedidoOrigem: ["pedido origem", "pedido", "pedido de origem", "origem"],
   separacao: ["separacao", "separação", "numero separacao", "nr separacao", "n separacao", "sep"],
@@ -64,6 +65,7 @@ export function detectColumns(headers: string[]): {
 }
 
 export interface FooterInfo {
+  porta?: string;
   rota?: string;
   pedidoOrigem?: string;
   separacao?: string;
@@ -95,6 +97,7 @@ export function detectFooter(rows: Record<string, unknown>[]): FooterInfo {
     }
     return undefined;
   };
+  result.porta = find(FOOTER_SYNONYMS.porta);
   result.rota = find(FOOTER_SYNONYMS.rota);
   result.pedidoOrigem = find(FOOTER_SYNONYMS.pedidoOrigem);
   result.separacao = find(FOOTER_SYNONYMS.separacao);
