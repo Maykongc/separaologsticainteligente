@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { parseFile } from "@/lib/sli/fileParser";
 import { detectColumns, detectFooter, type ColumnMap, type DetectedColumn, type FooterInfo } from "@/lib/sli/columnDetector";
-import { normalizeRows, buildFardos, shouldAutoCloseFardo, FARDO_MAX_CM, FARDO_MAX_ITENS, FARDO_FECHADO_MAX_CM, type Fardo, type FardoItem } from "@/lib/sli/fardoBuilder";
+import { normalizeRows, buildFardos, shouldAutoCloseFardo, FARDO_MAX_CM, FARDO_MAX_ITENS, FARDO_FECHADO_MAX_CM, FARDO_PERSONALIZADO_MAX_CM, type Fardo, type FardoItem } from "@/lib/sli/fardoBuilder";
 import { generatePdf } from "@/lib/sli/pdfGenerator";
 import { toast } from "sonner";
 
@@ -471,6 +471,7 @@ function PreviewStep({
     /\bmdf\b/i.test(produto) && !/\b(tira|tiras|peça|peca|peças|pecas|corte|cortes|sarrafo|sarrafos)\b/i.test(produto);
   const hasMDF = (f: Fardo) => f.itens.some((it) => isMDF(it.produto));
   const maxFor = (f: Fardo, incoming?: { produto: string }) => {
+    if (f.personalizado) return FARDO_PERSONALIZADO_MAX_CM;
     if (f.fechado) return FARDO_FECHADO_MAX_CM;
     return hasMDF(f) || (incoming && isMDF(incoming.produto)) ? FARDO_MAX_CM : Infinity;
   };
@@ -491,10 +492,10 @@ function PreviewStep({
     toast.success(`FARDO ${next.length} criado.`);
   };
 
-  const addClosedFardo = () => {
-    const next = [...fardos, { numero: fardos.length + 1, itens: [], alturaTotalCm: 0, quantidadeTotal: 0, fechado: true }];
+  const addCustomFardo = () => {
+    const next = [...fardos, { numero: fardos.length + 1, itens: [], alturaTotalCm: 0, quantidadeTotal: 0, personalizado: true }];
     onUpdateFardos(next);
-    toast.success(`FARDO fechado ${next.length} criado (máx. ${FARDO_FECHADO_MAX_CM} cm).`);
+    toast.success(`FARDO personalizado ${next.length} criado (máx. ${FARDO_PERSONALIZADO_MAX_CM} cm).`);
   };
 
   const deleteFardo = (numero: number) => {
@@ -621,12 +622,12 @@ function PreviewStep({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold">Pré-visualização</h2>
           <p className="text-sm text-muted-foreground">Arraste itens entre FARDOs para reorganizar (limite {FARDO_MAX_CM} cm).</p>
         </div>
-        <div className="flex items-end gap-2">
+        <div className="flex flex-wrap items-end gap-2">
           <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground notranslate" translate="no">
             Data
             <input
@@ -640,8 +641,8 @@ function PreviewStep({
           <Button variant="outline" onClick={addEmptyFardo}>
             <Package className="mr-2 h-4 w-4" /> Novo FARDO
           </Button>
-          <Button variant="outline" onClick={addClosedFardo}>
-            <PackageCheck className="mr-2 h-4 w-4" /> Fardo Fechado
+          <Button variant="outline" onClick={addCustomFardo}>
+            <PackageCheck className="mr-2 h-4 w-4" /> Fardo Personalizado
           </Button>
           <Button onClick={onDownload}>
             <Download className="mr-2 h-4 w-4" /> Gerar PDF
@@ -702,6 +703,9 @@ function PreviewStep({
                 )}
                 {f.fechado && (
                   <Badge className="bg-primary/10 text-primary hover:bg-primary/10 text-xs">fechado · máx {FARDO_FECHADO_MAX_CM} cm</Badge>
+                )}
+                {f.personalizado && (
+                  <Badge className="bg-primary/10 text-primary hover:bg-primary/10 text-xs">personalizado · máx {FARDO_PERSONALIZADO_MAX_CM} cm</Badge>
                 )}
                 {!f.fechado && limit === Infinity && (
                   <Badge variant="outline" className="text-xs">sem MDF · sem limite</Badge>
