@@ -14,6 +14,7 @@ export interface FardoItem {
 }
 
 export const FARDO_FECHADO_MAX_CM = 70;
+export const FARDO_PERSONALIZADO_MAX_CM = 100;
 
 export interface Fardo {
   numero: number;
@@ -21,6 +22,7 @@ export interface Fardo {
   alturaTotalCm: number;
   quantidadeTotal: number;
   fechado?: boolean;
+  personalizado?: boolean;
 }
 
 interface NormalizedRow {
